@@ -207,15 +207,8 @@ async function loadProfile() {
 async function saveProfile(updates) {
   if (db && currentUser) {
     const payload = { ...updates, updated_at: new Date().toISOString() };
-    console.log("saveProfile: attempting upsert for user", currentUser.id);
-    const { data, error, status } = await db.from("profiles").upsert({ id: currentUser.id, ...payload }).select();
-    console.log("saveProfile result:", { data, error, status });
-    if (error) {
-      console.error("Profile save failed:", error);
-      throw new Error("Profil konnte nicht gespeichert werden: " + error.message);
-    }
-  } else {
-    console.warn("saveProfile: no db or no currentUser", { db: !!db, user: !!currentUser });
+    const { error } = await db.from("profiles").upsert({ id: currentUser.id, ...payload });
+    if (error) throw new Error("Profil konnte nicht gespeichert werden: " + error.message);
   }
   profile = { ...profile, ...updates };
 }
@@ -910,11 +903,9 @@ async function saveProfileForm() {
   const btn = document.getElementById("profile-save-btn");
   if (btn) { btn.textContent = "Speichert..."; btn.disabled = true; }
   try {
-    alert("DEBUG: db=" + !!db + " user=" + (currentUser?.id || "null") + " age=" + updates.age);
     await saveProfile(updates);
-    alert("DEBUG: Speichern erfolgreich!");
   } catch (e) {
-    alert("FEHLER: " + e.message);
+    console.error("saveProfileForm error:", e);
   }
   profileEditing = false;
   renderProfile();
@@ -951,7 +942,6 @@ async function init() {
 
   // Check if already logged in
   const { data: { user } } = await db.auth.getUser();
-  console.log("init: getUser result", user ? user.email : "no user");
   if (user) {
     currentUser = user;
     showApp();
