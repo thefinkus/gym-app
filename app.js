@@ -196,8 +196,20 @@ async function loadProfile() {
 
 async function saveProfile(updates) {
   if (db && currentUser) {
-    const { error } = await db.from("profiles").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", currentUser.id);
-    if (error) console.error("Failed to save profile:", error);
+    const payload = { ...updates, updated_at: new Date().toISOString() };
+    // Try update first
+    const { data, error } = await db.from("profiles").update(payload).eq("id", currentUser.id).select();
+    if (error) {
+      console.error("Profile update failed:", error);
+      // Fallback: upsert (insert if row doesn't exist yet)
+      const { error: e2 } = await db.from("profiles").upsert({ id: currentUser.id, ...payload });
+      if (e2) console.error("Profile upsert also failed:", e2);
+    } else if (!data || data.length === 0) {
+      // Update matched no rows — profile row doesn't exist, insert it
+      console.warn("Profile row missing, inserting...");
+      const { error: e2 } = await db.from("profiles").insert({ id: currentUser.id, ...payload });
+      if (e2) console.error("Profile insert failed:", e2);
+    }
   }
   profile = { ...profile, ...updates };
 }
@@ -891,7 +903,12 @@ async function saveProfileForm() {
 
   const btn = document.getElementById("profile-save-btn");
   if (btn) { btn.textContent = "Speichert..."; btn.disabled = true; }
-  await saveProfile(updates);
+  try {
+    await saveProfile(updates);
+  } catch (e) {
+    console.error("saveProfileForm error:", e);
+    alert("Speichern fehlgeschlagen — prüfe die Konsole.");
+  }
   profileEditing = false;
   renderProfile();
 }
