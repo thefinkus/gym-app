@@ -97,6 +97,7 @@ let altOpen = -1;
 let sessionActive = false;
 let skipped = []; // indices of skipped exercises (come back later)
 let completed = new Set(); // indices of completed exercises
+let picking = false; // true = user picks next exercise after skip
 let profileEditing = false;
 let editingDevice = -1; // index of device being edited: "zone:idx"
 let sessionLog = { type: null, startedAt: null, exercises: [] };
@@ -441,66 +442,84 @@ function renderSession() {
     let html = `
       <div class="session-header">
         <button class="back-btn" onclick="backFromSession()">‹</button>
-        <div class="progress-meta"><span>${sessionType}</span><span>${completed.size}/${exercises.length}</span></div>
+        <div class="progress-meta"><span>${picking ? "Wähle nächste Übung" : sessionType}</span><span>${completed.size}/${exercises.length}</span></div>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
 
     const curMuscle = exercises[curIdx]?.muscle;
     exercises.forEach((ex, i) => {
-      const isCur = i === curIdx;
       const isDone = completed.has(i);
-      const isSkipped = skipped.includes(i) && !isCur;
+      const isSkipped = skipped.includes(i);
+      const isCur = !picking && i === curIdx;
       const weightDisplay = getWeightDisplay(ex.name) || ex.fallbackWeight || "";
       const loggedWeight = sessionLog.exercises[i]?.actualWeight;
-      const canJump = !isCur && !isDone && !isSkipped;
-      const sameMuscle = canJump && ex.muscle === curMuscle && ex.muscle !== "cardio";
 
-      html += `<div class="ex-card${isCur?" current":""}${isDone?" done":""}${isSkipped?" skipped":""}">
-        <div class="ex-row">
-          <div class="ex-num${isCur?" cur":""}${isSkipped?" skip":""}">${isDone?"✓":isSkipped?"⏭":i+1}</div>
-          <div style="flex:1">
-            <div class="ex-name">${ex.name}</div>
-            <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}${isDone && loggedWeight != null ? " → " + loggedWeight + " " + getWeightUnit(ex.name) : ""}</div>
-            <div class="ex-zone">${ex.zone}</div>
-          </div>
-          ${canJump ? `<button class="btn-jump ${sameMuscle?"same":""}" onclick="jumpToEx(${i})" title="${sameMuscle?"Gleiche Muskelgruppe":"Andere Muskelgruppe — safe"}">▶</button>` : ""}
-        </div>`;
-
-      if (isCur) {
-        const wNum = getWeightNum(ex.name);
-        const wUnit = getWeightUnit(ex.name);
-        if (wNum != null) {
-          html += `<div class="weight-input-group">
-              <button class="cnt-btn" onclick="adjustWeight(-2.5)">−</button>
-              <input type="number" inputmode="decimal" step="0.5" class="weight-input" id="weight-val" value="${wNum}" onfocus="this.select()">
-              <span class="weight-unit">${wUnit}</span>
-              <button class="cnt-btn" onclick="adjustWeight(2.5)">+</button>
-            </div>`;
-        }
-        html += `<div class="ex-btns">
-          <button class="btn primary sm" onclick="doneEx()">Erledigt →</button>
-          <button class="btn sm" onclick="toggleAlts(${i})">${altOpen===i?"✕ Schließen":"Besetzt?"}</button>
-        </div>`;
-        if (altOpen === i) {
-          html += `<div class="alt-panel">`;
-          if (ex.alts?.length) {
-            html += `<div class="alt-header">Alternative wählen</div>
-              ${ex.alts.map((alt, ai) => `<div class="alt-row">
-                  <div><div class="alt-name">${alt.name}</div><div class="alt-zone">📍 ${alt.zone}</div></div>
-                  <button class="btn primary sm" onclick="swapEx(${i},${ai})">Wählen</button>
-                </div>`).join("")}`;
-          }
-          html += `<div class="alt-row alt-skip" onclick="skipEx()">
-              <div><div class="alt-name">Überspringen</div><div class="alt-zone">Mach ich später — kommt am Ende wieder</div></div>
-              <span style="font-size:18px">⏭</span>
+      if (picking) {
+        // Picking mode: show selectable exercises
+        const canPick = !isDone && !isSkipped && ex.muscle !== "cardio";
+        html += `<div class="ex-card${isDone?" done":""}${isSkipped?" skipped":""}">
+          <div class="ex-row">
+            <div class="ex-num${isSkipped?" skip":""}">${isDone?"✓":isSkipped?"⏭":i+1}</div>
+            <div style="flex:1">
+              <div class="ex-name">${ex.name}</div>
+              <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}</div>
+              <div class="ex-zone">${ex.zone}</div>
             </div>
+            ${canPick ? `<button class="btn primary sm" onclick="pickEx(${i})">Wählen</button>` : ""}
+          </div>
+        </div>`;
+      } else {
+        // Normal mode
+        const canJump = !isCur && !isDone && !(isSkipped && !isCur) && ex.muscle !== "cardio";
+        const sameMuscle = canJump && ex.muscle === curMuscle && ex.muscle !== "cardio";
+
+        html += `<div class="ex-card${isCur?" current":""}${isDone?" done":""}${isSkipped && !isCur?" skipped":""}">
+          <div class="ex-row">
+            <div class="ex-num${isCur?" cur":""}${isSkipped && !isCur?" skip":""}">${isDone?"✓":isSkipped && !isCur?"⏭":i+1}</div>
+            <div style="flex:1">
+              <div class="ex-name">${ex.name}</div>
+              <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}${isDone && loggedWeight != null ? " → " + loggedWeight + " " + getWeightUnit(ex.name) : ""}</div>
+              <div class="ex-zone">${ex.zone}</div>
+            </div>
+            ${canJump ? `<button class="btn-jump ${sameMuscle?"same":""}" onclick="jumpToEx(${i})" title="${sameMuscle?"Gleiche Muskelgruppe":"Andere Muskelgruppe — safe"}">▶</button>` : ""}
           </div>`;
+
+        if (isCur) {
+          const wNum = getWeightNum(ex.name);
+          const wUnit = getWeightUnit(ex.name);
+          if (wNum != null) {
+            html += `<div class="weight-input-group">
+                <button class="cnt-btn" onclick="adjustWeight(-2.5)">−</button>
+                <input type="number" inputmode="decimal" step="0.5" class="weight-input" id="weight-val" value="${wNum}" onfocus="this.select()">
+                <span class="weight-unit">${wUnit}</span>
+                <button class="cnt-btn" onclick="adjustWeight(2.5)">+</button>
+              </div>`;
+          }
+          html += `<div class="ex-btns">
+            <button class="btn primary sm" onclick="doneEx()">Erledigt →</button>
+            ${ex.muscle !== "cardio" ? `<button class="btn sm" onclick="toggleAlts(${i})">${altOpen===i?"✕ Schließen":"Besetzt?"}</button>` : ""}
+          </div>`;
+          if (altOpen === i) {
+            html += `<div class="alt-panel">`;
+            if (ex.alts?.length) {
+              html += `<div class="alt-header">Alternative wählen</div>
+                ${ex.alts.map((alt, ai) => `<div class="alt-row">
+                    <div><div class="alt-name">${alt.name}</div><div class="alt-zone">📍 ${alt.zone}</div></div>
+                    <button class="btn primary sm" onclick="swapEx(${i},${ai})">Wählen</button>
+                  </div>`).join("")}`;
+            }
+            html += `<div class="alt-row alt-skip" onclick="skipEx()">
+                <div><div class="alt-name">Überspringen</div><div class="alt-zone">Mach ich später — kommt am Ende wieder</div></div>
+                <span style="font-size:18px">⏭</span>
+              </div>
+            </div>`;
+          }
         }
+        html += `</div>`;
       }
-      html += `</div>`;
     });
     el.innerHTML = html;
-    document.querySelectorAll(".ex-card")[curIdx]?.scrollIntoView({behavior:"smooth",block:"nearest"});
+    if (!picking) document.querySelectorAll(".ex-card")[curIdx]?.scrollIntoView({behavior:"smooth",block:"nearest"});
   }
 }
 
@@ -520,7 +539,7 @@ function startSession() {
   }
   exercises = JSON.parse(JSON.stringify(SESSIONS[sessionType] || SESSIONS["Oberkörper"]));
   exercises.forEach(ex => { const w = getWeightDisplay(ex.name); if (w) ex.fallbackWeight = w; });
-  curIdx = 0; altOpen = -1; skipped = []; completed = new Set(); sessionActive = true;
+  curIdx = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false; sessionActive = true;
   sessionLog = {
     type: sessionType, startedAt: new Date(),
     exercises: exercises.map(ex => ({
@@ -571,7 +590,16 @@ function advanceToNext() {
 function skipEx() {
   if (!skipped.includes(curIdx)) skipped.push(curIdx);
   altOpen = -1;
-  advanceToNext();
+  picking = true;
+  persistActiveSession();
+  renderSession();
+}
+
+function pickEx(i) {
+  skipped = skipped.filter(s => s !== i);
+  curIdx = i;
+  picking = false;
+  altOpen = -1;
   persistActiveSession();
   renderSession();
 }
@@ -615,7 +643,7 @@ function backFromSession() {
 }
 
 function resetSession() {
-  sessionActive = false; curIdx = 0; altOpen = -1; skipped = []; completed = new Set();
+  sessionActive = false; curIdx = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false;
   localStorage.removeItem("gymapp_active_session");
   renderSession();
 }
@@ -623,7 +651,7 @@ function resetSession() {
 function persistActiveSession() {
   if (!sessionActive) return;
   localStorage.setItem("gymapp_active_session", JSON.stringify({
-    sessionType, exercises, curIdx, altOpen, skipped,
+    sessionType, exercises, curIdx, altOpen, skipped, picking,
     completed: [...completed],
     sessionLog: { ...sessionLog, startedAt: sessionLog.startedAt?.toISOString() }
   }));
@@ -638,6 +666,7 @@ function restoreActiveSession() {
   altOpen = saved.altOpen;
   skipped = saved.skipped || [];
   completed = new Set(saved.completed || []);
+  picking = saved.picking || false;
   sessionLog = { ...saved.sessionLog, startedAt: new Date(saved.sessionLog.startedAt) };
   sessionActive = true;
   return true;
