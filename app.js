@@ -20,32 +20,32 @@ const WEIGHTS_DEFAULT = {
 
 const SESSIONS = {
   "Oberkörper":[
-    {name:"Rudergerät Warm-up",sets:"5 min",zone:"Cardio EG",alts:[{name:"Crosstrainer Warm-up",zone:"Cardio EG"},{name:"Fahrrad Warm-up",zone:"Cardio EG"}]},
-    {name:"Bankdrücken",sets:"4×10",zone:"Kraftbereich EG",alts:[{name:"KH Bankdrücken",zone:"Freihantel"},{name:"Butterfly / Pec Deck",zone:"Kraftbereich EG"},{name:"Kabelzug Flyes",zone:"Kabelzug"}]},
-    {name:"Latzug",sets:"4×10",zone:"Kraftbereich EG",alts:[{name:"Latzug OG",zone:"Kraftbereich OG"},{name:"Klimmzug-Assist",zone:"Kraftbereich EG"},{name:"Kabel-Pulldown",zone:"Kabelzug"}]},
-    {name:"Sitzrudern (Kabel)",sets:"4×10",zone:"Kabelzug",alts:[{name:"Rudermaschine",zone:"Kraftbereich EG"},{name:"Kabel-Rudern OG",zone:"Kraftbereich OG"}]},
-    {name:"Schulterdrücken KH",sets:"3×12",zone:"Freihantel",alts:[{name:"Maschinen Schulterdrücken",zone:"Kraftbereich EG"},{name:"Arnold Press KH",zone:"Freihantel"}]},
-    {name:"Face Pulls",sets:"3×15",zone:"Kabelzug",alts:[{name:"Reverse Fly Maschine",zone:"Kraftbereich EG"},{name:"Band Pull-Aparts",zone:"Matten"}]},
-    {name:"Plank",sets:"3×max",zone:"Matten",alts:[{name:"Dead Bug",zone:"Matten"},{name:"Hollow Body Hold",zone:"Matten"}]},
-    {name:"Rudergerät Cool-down",sets:"5 min",zone:"Cardio EG",alts:[{name:"Crosstrainer Cool-down",zone:"Cardio EG"},{name:"Stretching",zone:"Matten"}]}
+    {name:"Rudergerät Warm-up",sets:"5 min",zone:"Cardio EG",muscle:"cardio",alts:[{name:"Crosstrainer Warm-up",zone:"Cardio EG"},{name:"Fahrrad Warm-up",zone:"Cardio EG"}]},
+    {name:"Bankdrücken",sets:"4×10",zone:"Kraftbereich EG",muscle:"push",alts:[{name:"KH Bankdrücken",zone:"Freihantel"},{name:"Butterfly / Pec Deck",zone:"Kraftbereich EG"},{name:"Kabelzug Flyes",zone:"Kabelzug"}]},
+    {name:"Latzug",sets:"4×10",zone:"Kraftbereich EG",muscle:"pull",alts:[{name:"Latzug OG",zone:"Kraftbereich OG"},{name:"Klimmzug-Assist",zone:"Kraftbereich EG"},{name:"Kabel-Pulldown",zone:"Kabelzug"}]},
+    {name:"Sitzrudern (Kabel)",sets:"4×10",zone:"Kabelzug",muscle:"pull",alts:[{name:"Rudermaschine",zone:"Kraftbereich EG"},{name:"Kabel-Rudern OG",zone:"Kraftbereich OG"}]},
+    {name:"Schulterdrücken KH",sets:"3×12",zone:"Freihantel",muscle:"push",alts:[{name:"Maschinen Schulterdrücken",zone:"Kraftbereich EG"},{name:"Arnold Press KH",zone:"Freihantel"}]},
+    {name:"Face Pulls",sets:"3×15",zone:"Kabelzug",muscle:"pull",alts:[{name:"Reverse Fly Maschine",zone:"Kraftbereich EG"},{name:"Band Pull-Aparts",zone:"Matten"}]},
+    {name:"Plank",sets:"3×max",zone:"Matten",muscle:"core",alts:[{name:"Dead Bug",zone:"Matten"},{name:"Hollow Body Hold",zone:"Matten"}]},
+    {name:"Rudergerät Cool-down",sets:"5 min",zone:"Cardio EG",muscle:"cardio",alts:[{name:"Crosstrainer Cool-down",zone:"Cardio EG"},{name:"Stretching",zone:"Matten"}]}
   ],
   "Unterkörper":[
-    {name:"Rudergerät Warm-up",sets:"5 min",zone:"Cardio EG",alts:[{name:"Fahrrad Warm-up",zone:"Cardio EG"},{name:"Crosstrainer",zone:"Cardio EG"}]},
-    {name:"Beinpresse",sets:"4×10",zone:"Kraftbereich EG",alts:[{name:"Hack Squat Maschine",zone:"Kraftbereich EG"},{name:"Goblet Squat KH",zone:"Freihantel"}]},
-    {name:"Bulgarian Split Squat",sets:"3×10",zone:"Freihantel",alts:[{name:"Ausfallschritte KH",zone:"Freihantel"},{name:"Einbeinige Beinpresse",zone:"Kraftbereich EG"}]},
-    {name:"Beinbeuger",sets:"4×12",zone:"Kraftbereich EG",alts:[{name:"Nordic Curls",zone:"Matten"},{name:"Stiff Leg Deadlift KH",zone:"Freihantel"}]},
-    {name:"Wadenheben exz.",sets:"4×15",zone:"Kraftbereich EG",alts:[{name:"Wadenheben einbeinig",zone:"Kraftbereich EG"},{name:"Donkey Calf Raise",zone:"Kraftbereich EG"}]},
-    {name:"Plank",sets:"3×max",zone:"Matten",alts:[{name:"Glute Bridge",zone:"Matten"},{name:"Side Plank",zone:"Matten"}]},
-    {name:"Rudergerät Cool-down",sets:"5 min",zone:"Cardio EG",alts:[{name:"Beine stretchen",zone:"Matten"},{name:"Schaumrolle",zone:"Matten"}]}
+    {name:"Rudergerät Warm-up",sets:"5 min",zone:"Cardio EG",muscle:"cardio",alts:[{name:"Fahrrad Warm-up",zone:"Cardio EG"},{name:"Crosstrainer",zone:"Cardio EG"}]},
+    {name:"Beinpresse",sets:"4×10",zone:"Kraftbereich EG",muscle:"legs",alts:[{name:"Hack Squat Maschine",zone:"Kraftbereich EG"},{name:"Goblet Squat KH",zone:"Freihantel"}]},
+    {name:"Bulgarian Split Squat",sets:"3×10",zone:"Freihantel",muscle:"legs",alts:[{name:"Ausfallschritte KH",zone:"Freihantel"},{name:"Einbeinige Beinpresse",zone:"Kraftbereich EG"}]},
+    {name:"Beinbeuger",sets:"4×12",zone:"Kraftbereich EG",muscle:"legs",alts:[{name:"Nordic Curls",zone:"Matten"},{name:"Stiff Leg Deadlift KH",zone:"Freihantel"}]},
+    {name:"Wadenheben exz.",sets:"4×15",zone:"Kraftbereich EG",muscle:"legs",alts:[{name:"Wadenheben einbeinig",zone:"Kraftbereich EG"},{name:"Donkey Calf Raise",zone:"Kraftbereich EG"}]},
+    {name:"Plank",sets:"3×max",zone:"Matten",muscle:"core",alts:[{name:"Glute Bridge",zone:"Matten"},{name:"Side Plank",zone:"Matten"}]},
+    {name:"Rudergerät Cool-down",sets:"5 min",zone:"Cardio EG",muscle:"cardio",alts:[{name:"Beine stretchen",zone:"Matten"},{name:"Schaumrolle",zone:"Matten"}]}
   ],
   "Vollkörper":[
-    {name:"Rudergerät Warm-up",sets:"5 min",zone:"Cardio EG",alts:[{name:"Crosstrainer",zone:"Cardio EG"}]},
-    {name:"Bankdrücken",sets:"3×10",zone:"Kraftbereich EG",alts:[{name:"KH Bankdrücken",zone:"Freihantel"}]},
-    {name:"Beinpresse",sets:"3×10",zone:"Kraftbereich EG",alts:[{name:"Goblet Squat KH",zone:"Freihantel"}]},
-    {name:"Latzug",sets:"3×10",zone:"Kraftbereich EG",alts:[{name:"Latzug OG",zone:"Kraftbereich OG"}]},
-    {name:"Beinbeuger",sets:"3×12",zone:"Kraftbereich EG",alts:[{name:"Nordic Curls",zone:"Matten"}]},
-    {name:"Plank",sets:"3×max",zone:"Matten",alts:[{name:"Dead Bug",zone:"Matten"}]},
-    {name:"Rudergerät Cool-down",sets:"5 min",zone:"Cardio EG",alts:[{name:"Stretching",zone:"Matten"}]}
+    {name:"Rudergerät Warm-up",sets:"5 min",zone:"Cardio EG",muscle:"cardio",alts:[{name:"Crosstrainer",zone:"Cardio EG"}]},
+    {name:"Bankdrücken",sets:"3×10",zone:"Kraftbereich EG",muscle:"push",alts:[{name:"KH Bankdrücken",zone:"Freihantel"}]},
+    {name:"Beinpresse",sets:"3×10",zone:"Kraftbereich EG",muscle:"legs",alts:[{name:"Goblet Squat KH",zone:"Freihantel"}]},
+    {name:"Latzug",sets:"3×10",zone:"Kraftbereich EG",muscle:"pull",alts:[{name:"Latzug OG",zone:"Kraftbereich OG"}]},
+    {name:"Beinbeuger",sets:"3×12",zone:"Kraftbereich EG",muscle:"legs",alts:[{name:"Nordic Curls",zone:"Matten"}]},
+    {name:"Plank",sets:"3×max",zone:"Matten",muscle:"core",alts:[{name:"Dead Bug",zone:"Matten"}]},
+    {name:"Rudergerät Cool-down",sets:"5 min",zone:"Cardio EG",muscle:"cardio",alts:[{name:"Stretching",zone:"Matten"}]}
   ]
 };
 
@@ -96,6 +96,7 @@ let curIdx = 0;
 let altOpen = -1;
 let sessionActive = false;
 let skipped = []; // indices of skipped exercises (come back later)
+let completed = new Set(); // indices of completed exercises
 let profileEditing = false;
 let editingDevice = -1; // index of device being edited: "zone:idx"
 let sessionLog = { type: null, startedAt: null, exercises: [] };
@@ -419,7 +420,7 @@ function renderSession() {
         ).join("")}
       </div>
       <button class="btn primary block" onclick="startSession()" style="margin-top:4px">Starten</button>`;
-  } else if (curIdx >= exercises.length) {
+  } else if (completed.size >= exercises.length) {
     const duration = Math.round((new Date() - sessionLog.startedAt) / 1000);
     const mins = Math.floor(duration / 60);
     el.innerHTML = `
@@ -436,31 +437,33 @@ function renderSession() {
         <button class="btn ghost block" onclick="resetSession()" style="margin-top:8px">Verwerfen</button>
       </div>`;
   } else {
-    const doneCount = exercises.filter((_, i) => i < curIdx && !skipped.includes(i)).length + skipped.filter(s => sessionLog.exercises[s]?.actualWeight != null).length;
-    const pct = Math.round(doneCount / exercises.length * 100);
+    const pct = Math.round(completed.size / exercises.length * 100);
     let html = `
       <div class="session-header">
         <button class="back-btn" onclick="backFromSession()">‹</button>
-        <div class="progress-meta"><span>${sessionType}</span><span>${curIdx}/${exercises.length}</span></div>
+        <div class="progress-meta"><span>${sessionType}</span><span>${completed.size}/${exercises.length}</span></div>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
 
+    const curMuscle = exercises[curIdx]?.muscle;
     exercises.forEach((ex, i) => {
       const isCur = i === curIdx;
-      const isDone = sessionLog.exercises[i]?.actualWeight != null || (i < curIdx && !skipped.includes(i));
-      const isSkipped = skipped.includes(i) && i !== curIdx;
+      const isDone = completed.has(i);
+      const isSkipped = skipped.includes(i) && !isCur;
       const weightDisplay = getWeightDisplay(ex.name) || ex.fallbackWeight || "";
       const loggedWeight = sessionLog.exercises[i]?.actualWeight;
+      const canJump = !isCur && !isDone && !isSkipped;
+      const sameMuscle = canJump && ex.muscle === curMuscle && ex.muscle !== "cardio";
 
-      html += `<div class="ex-card${isCur?" current":""}${isDone && !isCur?" done":""}${isSkipped?" skipped":""}">
+      html += `<div class="ex-card${isCur?" current":""}${isDone?" done":""}${isSkipped?" skipped":""}">
         <div class="ex-row">
-          <div class="ex-num${isCur?" cur":""}${isSkipped?" skip":""}">${isDone && !isCur?"✓":isSkipped?"⏭":i+1}</div>
+          <div class="ex-num${isCur?" cur":""}${isSkipped?" skip":""}">${isDone?"✓":isSkipped?"⏭":i+1}</div>
           <div style="flex:1">
             <div class="ex-name">${ex.name}</div>
-            <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}${isDone && !isCur && loggedWeight != null ? " → " + loggedWeight + " " + getWeightUnit(ex.name) : ""}</div>
+            <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}${isDone && loggedWeight != null ? " → " + loggedWeight + " " + getWeightUnit(ex.name) : ""}</div>
             <div class="ex-zone">${ex.zone}</div>
           </div>
-          ${!isCur && !isDone && !isSkipped && i > curIdx ? `<button class="btn-jump" onclick="jumpToEx(${i})" title="Vorziehen">▶</button>` : ""}
+          ${canJump ? `<button class="btn-jump ${sameMuscle?"same":""}" onclick="jumpToEx(${i})" title="${sameMuscle?"Gleiche Muskelgruppe":"Andere Muskelgruppe — safe"}">▶</button>` : ""}
         </div>`;
 
       if (isCur) {
@@ -517,7 +520,7 @@ function startSession() {
   }
   exercises = JSON.parse(JSON.stringify(SESSIONS[sessionType] || SESSIONS["Oberkörper"]));
   exercises.forEach(ex => { const w = getWeightDisplay(ex.name); if (w) ex.fallbackWeight = w; });
-  curIdx = 0; altOpen = -1; skipped = []; sessionActive = true;
+  curIdx = 0; altOpen = -1; skipped = []; completed = new Set(); sessionActive = true;
   sessionLog = {
     type: sessionType, startedAt: new Date(),
     exercises: exercises.map(ex => ({
@@ -542,7 +545,7 @@ function doneEx() {
   if (input && sessionLog.exercises[curIdx]) {
     sessionLog.exercises[curIdx].actualWeight = parseFloat(input.value) || null;
   }
-  // Remove from skipped if it was there
+  completed.add(curIdx);
   skipped = skipped.filter(s => s !== curIdx);
   altOpen = -1;
   advanceToNext();
@@ -551,9 +554,9 @@ function doneEx() {
 }
 
 function advanceToNext() {
-  // Find next undone exercise
-  for (let i = curIdx + 1; i < exercises.length; i++) {
-    if (!skipped.includes(i)) { curIdx = i; return; }
+  // Find next exercise that isn't completed or skipped
+  for (let i = 0; i < exercises.length; i++) {
+    if (!completed.has(i) && !skipped.includes(i)) { curIdx = i; return; }
   }
   // All non-skipped done — loop back to first skipped
   if (skipped.length > 0) {
@@ -561,8 +564,8 @@ function advanceToNext() {
     skipped = skipped.slice(1);
     return;
   }
-  // Everything done
-  curIdx = exercises.length;
+  // Everything done — trigger finish screen
+  curIdx = 0; // doesn't matter, completed.size check triggers done screen
 }
 
 function skipEx() {
@@ -612,7 +615,7 @@ function backFromSession() {
 }
 
 function resetSession() {
-  sessionActive = false; curIdx = 0; altOpen = -1; skipped = [];
+  sessionActive = false; curIdx = 0; altOpen = -1; skipped = []; completed = new Set();
   localStorage.removeItem("gymapp_active_session");
   renderSession();
 }
@@ -620,9 +623,9 @@ function resetSession() {
 function persistActiveSession() {
   if (!sessionActive) return;
   localStorage.setItem("gymapp_active_session", JSON.stringify({
-    sessionType, exercises, curIdx, altOpen, skipped, sessionLog: {
-      ...sessionLog, startedAt: sessionLog.startedAt?.toISOString()
-    }
+    sessionType, exercises, curIdx, altOpen, skipped,
+    completed: [...completed],
+    sessionLog: { ...sessionLog, startedAt: sessionLog.startedAt?.toISOString() }
   }));
 }
 
@@ -634,6 +637,7 @@ function restoreActiveSession() {
   curIdx = saved.curIdx;
   altOpen = saved.altOpen;
   skipped = saved.skipped || [];
+  completed = new Set(saved.completed || []);
   sessionLog = { ...saved.sessionLog, startedAt: new Date(saved.sessionLog.startedAt) };
   sessionActive = true;
   return true;
@@ -710,10 +714,13 @@ function renderGym() {
       </div>`;
     devices.forEach((d, di) => {
       html += `<div class="device-row" onclick="editDevice('${zone}',${di})">
-        <div>
-          <div class="device-name">${d.name}</div>
-          ${d.sub ? `<div class="device-sub">${d.sub}</div>` : ""}
-          ${d.note ? `<div class="device-sub" style="font-style:italic">${d.note}</div>` : ""}
+        <div style="display:flex;gap:10px;align-items:center;flex:1;min-width:0">
+          ${d.photo ? `<img src="${d.photo}" class="device-thumb">` : ""}
+          <div style="min-width:0">
+            <div class="device-name">${d.name}</div>
+            ${d.sub ? `<div class="device-sub">${d.sub}</div>` : ""}
+            ${d.note ? `<div class="device-sub" style="font-style:italic">${d.note}</div>` : ""}
+          </div>
         </div>
         <div class="counter" onclick="event.stopPropagation()">
           <button class="cnt-btn" onclick="chgCount('${zone}',${di},-1)">−</button>
@@ -732,9 +739,13 @@ function renderGym() {
           <div class="input-row">
             <input class="input" id="edit-note" value="${d.note || ""}" placeholder="Notiz (z.B. Standort)" style="flex:1">
           </div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <button class="btn primary sm" onclick="saveDeviceEdit('${zone}',${di})">Speichern</button>
             <button class="btn sm" onclick="cancelDeviceEdit()">Abbrechen</button>
+            <label class="btn sm" style="cursor:pointer">📷 Foto
+              <input type="file" accept="image/*" capture="environment" style="display:none" onchange="addDevicePhoto('${zone}',${di},this)">
+            </label>
+            ${d.photo ? `<button class="btn sm" onclick="removeDevicePhoto('${zone}',${di})" style="color:#c62828">Foto ×</button>` : ""}
           </div>
         </div>`;
       }
@@ -820,6 +831,39 @@ function saveDeviceEdit(zone, idx) {
 }
 
 function cancelDeviceEdit() { editingDevice = -1; renderGym(); }
+
+function resizeImage(file, maxSize) {
+  return new Promise((res) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        res(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addDevicePhoto(zone, idx, input) {
+  if (!input.files[0]) return;
+  const dataUrl = await resizeImage(input.files[0], 200);
+  gym[zone][idx].photo = dataUrl;
+  localStorage.setItem("gymapp_v1", JSON.stringify(gym));
+  renderGym();
+}
+
+function removeDevicePhoto(zone, idx) {
+  delete gym[zone][idx].photo;
+  localStorage.setItem("gymapp_v1", JSON.stringify(gym));
+  renderGym();
+}
 
 async function doSave() {
   localStorage.setItem("gymapp_v1", JSON.stringify(gym));
@@ -931,7 +975,7 @@ function renderProfile() {
             <div><div>${n}</div><div style="font-size:12px;color:#bbb">${d.zone}</div></div>
             <div style="display:flex;align-items:center;gap:4px">
               <button class="cnt-btn" onclick="adjustProfileWeight('${n}',-2.5)" style="width:30px;height:30px;font-size:16px">−</button>
-              <span class="profile-val" id="pw-${n.replace(/[^a-zA-Z0-9]/g,'_')}" style="min-width:64px;text-align:center">${d.w} ${d.unit}</span>
+              <span class="profile-val pw-tap" id="pw-${n.replace(/[^a-zA-Z0-9]/g,'_')}" onclick="editProfileWeight('${n}')" style="min-width:64px;text-align:center;cursor:pointer">${d.w} ${d.unit}</span>
               <button class="cnt-btn" onclick="adjustProfileWeight('${n}',2.5)" style="width:30px;height:30px;font-size:16px">+</button>
             </div>
           </div>`).join("")}
@@ -1030,10 +1074,42 @@ function adjustProfileWeight(name, delta) {
   if (!WEIGHTS[name]) return;
   WEIGHTS[name].w = Math.max(0, Math.round((WEIGHTS[name].w + delta) * 2) / 2);
   localStorage.setItem("gymapp_weights", JSON.stringify(WEIGHTS));
-  // Update display without full re-render
   const id = "pw-" + name.replace(/[^a-zA-Z0-9]/g, "_");
   const el = document.getElementById(id);
   if (el) el.textContent = WEIGHTS[name].w + " " + WEIGHTS[name].unit;
+}
+
+function editProfileWeight(name) {
+  if (!WEIGHTS[name]) return;
+  const id = "pw-" + name.replace(/[^a-zA-Z0-9]/g, "_");
+  const el = document.getElementById(id);
+  if (!el || el.tagName === "INPUT") return;
+  const w = WEIGHTS[name];
+  const input = document.createElement("input");
+  input.type = "number";
+  input.inputMode = "decimal";
+  input.step = "0.5";
+  input.value = w.w;
+  input.className = "pw-edit";
+  input.id = id;
+  input.style.cssText = "width:52px;text-align:center;font-size:14px;font-weight:500;border:1px solid #999;border-radius:6px;padding:4px;font-family:inherit";
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+  const save = () => {
+    const val = Math.max(0, parseFloat(input.value) || 0);
+    WEIGHTS[name].w = Math.round(val * 2) / 2;
+    localStorage.setItem("gymapp_weights", JSON.stringify(WEIGHTS));
+    const span = document.createElement("span");
+    span.className = "profile-val pw-tap";
+    span.id = id;
+    span.style.cssText = "min-width:64px;text-align:center;cursor:pointer";
+    span.textContent = WEIGHTS[name].w + " " + WEIGHTS[name].unit;
+    span.onclick = () => editProfileWeight(name);
+    input.replaceWith(span);
+  };
+  input.onblur = save;
+  input.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); save(); } };
 }
 
 function switchToLogin() {
