@@ -192,11 +192,12 @@ async function loadWeights() {
 async function loadProfile() {
   if (db && currentUser) {
     try {
-      const { data, error } = await db.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
-      if (!error && data) {
-        profile = data;
+      const { data, error } = await db.from("profiles").select("*").eq("id", currentUser.id).limit(1);
+      if (!error && data && data.length > 0) {
+        profile = data[0];
         return;
       }
+      if (error) console.error("loadProfile error:", error);
     } catch (e) {
       console.error("Failed to load profile:", e);
     }
@@ -207,8 +208,10 @@ async function loadProfile() {
 async function saveProfile(updates) {
   if (db && currentUser) {
     const payload = { ...updates, updated_at: new Date().toISOString() };
-    const { error } = await db.from("profiles").upsert({ id: currentUser.id, ...payload });
-    if (error) throw new Error("Profil konnte nicht gespeichert werden: " + error.message);
+    const { data, error } = await db.from("profiles").upsert({ id: currentUser.id, ...payload }).select();
+    if (error) throw new Error(error.message);
+    if (data && data.length > 0) profile = data[0];
+    return;
   }
   profile = { ...profile, ...updates };
 }
