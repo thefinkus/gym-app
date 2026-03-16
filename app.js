@@ -1,7 +1,7 @@
 // ── SUPABASE CONFIG ──────────────────────────────────────
 // Anon key is designed for client-side use — not a secret
 const SUPABASE_URL = "https://dnlsiuxumdkiykzmmwxr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_YnFGrqQoJxM3iUtH3bV5kQ_3NNZ58cv";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRubHNpdXh1bWRraXlrem1td3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjY0MDksImV4cCI6MjA4OTI0MjQwOX0.RVkkAiJ7Yy_EOW27pDSecwed-F4mJyjeLat3HF7o3Co";
 
 // ── SESSION TEMPLATES (no personal data) ─────────────────
 
@@ -182,7 +182,7 @@ async function loadWeights() {
 async function loadProfile() {
   if (db && currentUser) {
     try {
-      const { data, error } = await db.from("profiles").select("*").eq("id", currentUser.id).single();
+      const { data, error } = await db.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
       if (!error && data) {
         profile = data;
         return;
@@ -197,18 +197,11 @@ async function loadProfile() {
 async function saveProfile(updates) {
   if (db && currentUser) {
     const payload = { ...updates, updated_at: new Date().toISOString() };
-    // Try update first
-    const { data, error } = await db.from("profiles").update(payload).eq("id", currentUser.id).select();
+    // Upsert: insert or update in one call
+    const { error } = await db.from("profiles").upsert({ id: currentUser.id, ...payload });
     if (error) {
-      console.error("Profile update failed:", error);
-      // Fallback: upsert (insert if row doesn't exist yet)
-      const { error: e2 } = await db.from("profiles").upsert({ id: currentUser.id, ...payload });
-      if (e2) console.error("Profile upsert also failed:", e2);
-    } else if (!data || data.length === 0) {
-      // Update matched no rows — profile row doesn't exist, insert it
-      console.warn("Profile row missing, inserting...");
-      const { error: e2 } = await db.from("profiles").insert({ id: currentUser.id, ...payload });
-      if (e2) console.error("Profile insert failed:", e2);
+      console.error("Profile save failed:", error);
+      throw new Error("Profil konnte nicht gespeichert werden: " + error.message);
     }
   }
   profile = { ...profile, ...updates };
@@ -933,8 +926,9 @@ async function init() {
     if (session?.user) {
       currentUser = session.user;
       showApp();
-      await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), syncPending()]);
+      await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), loadHistory(), syncPending()]);
       renderSession();
+      renderHistory();
     } else {
       currentUser = null;
       showLogin();
@@ -946,8 +940,9 @@ async function init() {
   if (user) {
     currentUser = user;
     showApp();
-    await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), syncPending()]);
+    await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), loadHistory(), syncPending()]);
     renderSession();
+    renderHistory();
   } else {
     showLogin();
   }
