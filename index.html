@@ -11,7 +11,20 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="app">
+
+<!-- Login Screen -->
+<div id="login-screen" class="login-screen">
+  <div class="login-box">
+    <div class="login-title">Gym App</div>
+    <div class="login-sub">Anmelden mit Magic Link</div>
+    <input type="email" id="login-email" class="input" placeholder="deine@email.de" autocomplete="email">
+    <button class="btn primary block" id="login-btn" onclick="sendMagicLink()" style="margin-top:12px">Magic Link senden</button>
+    <div id="login-msg" class="login-msg"></div>
+  </div>
+</div>
+
+<!-- App (hidden until logged in) -->
+<div id="app-main" class="app" style="display:none">
   <div class="tab-bar">
     <button class="tab-btn active" onclick="showTab('session')">Session</button>
     <button class="tab-btn" onclick="showTab('history')">History</button>
@@ -24,6 +37,7 @@
   <div class="view" id="view-gym"></div>
   <div class="view" id="view-profile"></div>
 </div>
+
 <script src="app.js"></script>
 </body>
 </html>
