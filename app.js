@@ -925,35 +925,34 @@ function saveSettingsForm() {
 
 // ── INIT ─────────────────────────────────────────────────
 
+let appLoaded = false;
+
+async function loadAllData() {
+  if (appLoaded) return;
+  appLoaded = true;
+  await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), loadHistory(), syncPending()]);
+  renderSession();
+  renderHistory();
+  // Re-render profile if we're on that tab
+  if (currentTab === "profile") renderProfile();
+}
+
 async function init() {
   initSupabase();
   if (!db) { showLogin(); return; }
 
-  // Listen for auth state changes (magic link redirect)
+  // Single auth handler — onAuthStateChange fires for initial session + changes
   db.auth.onAuthStateChange(async (event, session) => {
     if (session?.user) {
       currentUser = session.user;
       showApp();
-      await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), loadHistory(), syncPending()]);
-      renderSession();
-      renderHistory();
+      await loadAllData();
     } else {
       currentUser = null;
+      appLoaded = false;
       showLogin();
     }
   });
-
-  // Check if already logged in
-  const { data: { user } } = await db.auth.getUser();
-  if (user) {
-    currentUser = user;
-    showApp();
-    await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), loadHistory(), syncPending()]);
-    renderSession();
-    renderHistory();
-  } else {
-    showLogin();
-  }
 }
 
 init();
