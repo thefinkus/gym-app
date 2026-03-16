@@ -161,10 +161,21 @@ async function signUp() {
   }
 }
 
+function skipLogin() {
+  // Offline mode: no Supabase, everything in localStorage
+  db = null;
+  currentUser = null;
+  localStorage.setItem("gymapp_offline", "1");
+  showApp();
+  loadAllData().then(() => { renderSession(); });
+}
+
 async function logout() {
-  await db.auth.signOut();
+  localStorage.removeItem("gymapp_offline");
+  if (db) await db.auth.signOut();
   currentUser = null;
   profile = null;
+  appLoaded = false;
   showLogin();
 }
 
@@ -195,6 +206,7 @@ async function loadProfile() {
       const { data, error } = await db.from("profiles").select("*").eq("id", currentUser.id).limit(1);
       if (!error && data && data.length > 0) {
         profile = data[0];
+        localStorage.setItem("gymapp_profile", JSON.stringify(profile));
         return;
       }
       if (error) console.error("loadProfile error:", error);
@@ -202,18 +214,17 @@ async function loadProfile() {
       console.error("Failed to load profile:", e);
     }
   }
-  profile = profile || {};
+  profile = JSON.parse(localStorage.getItem("gymapp_profile") || "null") || {};
 }
 
 async function saveProfile(updates) {
+  profile = { ...profile, ...updates };
+  localStorage.setItem("gymapp_profile", JSON.stringify(profile));
   if (db && currentUser) {
     const payload = { ...updates, updated_at: new Date().toISOString() };
-    const { data, error } = await db.from("profiles").upsert({ id: currentUser.id, ...payload }).select();
-    if (error) throw new Error(error.message);
-    if (data && data.length > 0) profile = data[0];
-    return;
+    const { error } = await db.from("profiles").upsert({ id: currentUser.id, ...payload }).select();
+    if (error) console.error("Profile sync error:", error);
   }
-  profile = { ...profile, ...updates };
 }
 
 async function loadGymEquipment() {
@@ -938,6 +949,15 @@ async function loadAllData() {
 }
 
 async function init() {
+  // Check if user was in offline mode
+  if (localStorage.getItem("gymapp_offline")) {
+    db = null;
+    showApp();
+    await loadAllData();
+    renderSession();
+    return;
+  }
+
   initSupabase();
   if (!db) { showLogin(); return; }
 
