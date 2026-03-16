@@ -16,9 +16,11 @@
 <div id="login-screen" class="login-screen">
   <div class="login-box">
     <div class="login-title">Gym App</div>
-    <div class="login-sub">Anmelden mit Magic Link</div>
+    <div class="login-sub">Anmelden oder Registrieren</div>
     <input type="email" id="login-email" class="input" placeholder="deine@email.de" autocomplete="email">
-    <button class="btn primary block" id="login-btn" onclick="sendMagicLink()" style="margin-top:12px">Magic Link senden</button>
+    <input type="password" id="login-pw" class="input" placeholder="Passwort" autocomplete="current-password" style="margin-top:8px">
+    <button class="btn primary block" id="login-btn" onclick="loginWithPassword()" style="margin-top:12px">Anmelden</button>
+    <button class="btn block" onclick="signUp()" style="margin-top:8px">Neu registrieren</button>
     <div id="login-msg" class="login-msg"></div>
   </div>
 </div>
@@ -38,6 +40,6 @@
   <div class="view" id="view-profile"></div>
 </div>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

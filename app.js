@@ -129,25 +129,35 @@ function showApp() {
   document.getElementById("app-main").style.display = "block";
 }
 
-async function sendMagicLink() {
+async function loginWithPassword() {
   const email = document.getElementById("login-email").value.trim();
-  const btn = document.getElementById("login-btn");
+  const pw = document.getElementById("login-pw").value;
   const msg = document.getElementById("login-msg");
-  if (!email) { msg.textContent = "Bitte Email eingeben."; return; }
+  const btn = document.getElementById("login-btn");
+  if (!email || !pw) { msg.textContent = "Email und Passwort eingeben."; return; }
 
   btn.disabled = true;
-  btn.textContent = "Sende...";
-  const { error } = await db.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin + window.location.pathname }
-  });
+  btn.textContent = "Anmelden...";
+  const { error } = await db.auth.signInWithPassword({ email, password: pw });
   if (error) {
     msg.textContent = "Fehler: " + error.message;
     btn.disabled = false;
-    btn.textContent = "Magic Link senden";
+    btn.textContent = "Anmelden";
+  }
+}
+
+async function signUp() {
+  const email = document.getElementById("login-email").value.trim();
+  const pw = document.getElementById("login-pw").value;
+  const msg = document.getElementById("login-msg");
+  if (!email || !pw) { msg.textContent = "Email und Passwort eingeben."; return; }
+  if (pw.length < 6) { msg.textContent = "Passwort muss mind. 6 Zeichen haben."; return; }
+
+  const { error } = await db.auth.signUp({ email, password: pw });
+  if (error) {
+    msg.textContent = "Fehler: " + error.message;
   } else {
-    msg.textContent = "Link gesendet! Prüfe deine Email.";
-    btn.textContent = "Gesendet ✓";
+    msg.textContent = "Account erstellt! Du bist eingeloggt.";
   }
 }
 
