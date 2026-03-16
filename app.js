@@ -89,7 +89,7 @@ let currentUser = null;
 let WEIGHTS = JSON.parse(JSON.stringify(WEIGHTS_DEFAULT));
 let gym = JSON.parse(JSON.stringify(GYM_DEFAULT));
 let profile = null;
-let currentTab = "session";
+let currentTab = localStorage.getItem("gymapp_tab") || "session";
 let sessionType = "Oberkörper";
 let exercises = [];
 let curIdx = 0;
@@ -389,6 +389,7 @@ async function loadHistory() {
 
 function showTab(t) {
   currentTab = t;
+  localStorage.setItem("gymapp_tab", t);
   document.querySelectorAll(".tab-btn").forEach((b, i) => b.classList.toggle("active", TABS[i] === t));
   document.querySelectorAll(".view").forEach((v, i) => v.classList.toggle("active", TABS[i] === t));
   if (t === "session") renderSession();
@@ -513,6 +514,7 @@ function startSession() {
       zone: ex.zone, wasAlt: false, originalName: null
     }))
   };
+  persistActiveSession();
   renderSession();
 }
 
@@ -528,7 +530,9 @@ function doneEx() {
   if (input && sessionLog.exercises[curIdx]) {
     sessionLog.exercises[curIdx].actualWeight = parseFloat(input.value) || null;
   }
-  altOpen = -1; curIdx++; renderSession();
+  altOpen = -1; curIdx++;
+  persistActiveSession();
+  renderSession();
 }
 
 function toggleAlts(i) { altOpen = altOpen === i ? -1 : i; renderSession(); }
@@ -543,7 +547,9 @@ function swapEx(i, ai) {
       actualUnit: getWeightUnit(alt.name), wasAlt: true, originalName
     });
   }
-  altOpen = -1; renderSession();
+  altOpen = -1;
+  persistActiveSession();
+  renderSession();
 }
 
 function backFromSession() {
@@ -551,7 +557,32 @@ function backFromSession() {
   resetSession();
 }
 
-function resetSession() { sessionActive = false; curIdx = 0; altOpen = -1; renderSession(); }
+function resetSession() {
+  sessionActive = false; curIdx = 0; altOpen = -1;
+  localStorage.removeItem("gymapp_active_session");
+  renderSession();
+}
+
+function persistActiveSession() {
+  if (!sessionActive) return;
+  localStorage.setItem("gymapp_active_session", JSON.stringify({
+    sessionType, exercises, curIdx, altOpen, sessionLog: {
+      ...sessionLog, startedAt: sessionLog.startedAt?.toISOString()
+    }
+  }));
+}
+
+function restoreActiveSession() {
+  const saved = JSON.parse(localStorage.getItem("gymapp_active_session") || "null");
+  if (!saved) return false;
+  sessionType = saved.sessionType;
+  exercises = saved.exercises;
+  curIdx = saved.curIdx;
+  altOpen = saved.altOpen;
+  sessionLog = { ...saved.sessionLog, startedAt: new Date(saved.sessionLog.startedAt) };
+  sessionActive = true;
+  return true;
+}
 
 async function finishSession() {
   const btn = document.getElementById("finish-btn");
@@ -843,7 +874,11 @@ function renderProfile() {
         ${Object.entries(WEIGHTS).map(([n,d])=>`
           <div class="profile-row">
             <div><div>${n}</div><div style="font-size:12px;color:#bbb">${d.zone}</div></div>
-            <span class="profile-val">${d.w} ${d.unit}</span>
+            <div style="display:flex;align-items:center;gap:4px">
+              <button class="cnt-btn" onclick="adjustProfileWeight('${n}',-2.5)">−</button>
+              <span class="profile-val" id="pw-${n.replace(/[^a-zA-Z0-9]/g,'_')}">${d.w} ${d.unit}</span>
+              <button class="cnt-btn" onclick="adjustProfileWeight('${n}',2.5)">+</button>
+            </div>
           </div>`).join("")}
       </div>
       ${restrictions.length ? `<div style="margin-bottom:22px">
@@ -860,8 +895,10 @@ function renderProfile() {
         <span id="settings-status"></span>
       </div>
       <div style="margin-top:24px;text-align:center">
-        <div style="font-size:12px;color:#bbb;margin-bottom:8px">${currentUser?.email || ""}</div>
-        <button class="btn sm" onclick="logout()">Abmelden</button>
+        ${currentUser ? `<div style="font-size:12px;color:#bbb;margin-bottom:8px">${currentUser.email}</div>
+        <button class="btn sm" onclick="logout()">Abmelden</button>` :
+        `<div style="font-size:12px;color:#bbb;margin-bottom:8px">Gast-Modus (nur lokal gespeichert)</div>
+        <button class="btn sm" onclick="switchToLogin()">Mit Account verbinden</button>`}
       </div>`;
   }
 }
@@ -934,6 +971,22 @@ function saveSettingsForm() {
   setTimeout(() => { if (status) status.innerHTML = ""; }, 2000);
 }
 
+function adjustProfileWeight(name, delta) {
+  if (!WEIGHTS[name]) return;
+  WEIGHTS[name].w = Math.max(0, Math.round((WEIGHTS[name].w + delta) * 2) / 2);
+  localStorage.setItem("gymapp_weights", JSON.stringify(WEIGHTS));
+  // Update display without full re-render
+  const id = "pw-" + name.replace(/[^a-zA-Z0-9]/g, "_");
+  const el = document.getElementById(id);
+  if (el) el.textContent = WEIGHTS[name].w + " " + WEIGHTS[name].unit;
+}
+
+function switchToLogin() {
+  localStorage.removeItem("gymapp_offline");
+  appLoaded = false;
+  init();
+}
+
 // ── INIT ─────────────────────────────────────────────────
 
 let appLoaded = false;
@@ -942,10 +995,9 @@ async function loadAllData() {
   if (appLoaded) return;
   appLoaded = true;
   await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), loadHistory(), syncPending()]);
-  renderSession();
-  renderHistory();
-  // Re-render profile if we're on that tab
-  if (currentTab === "profile") renderProfile();
+  restoreActiveSession();
+  // Restore the tab the user was on
+  showTab(currentTab);
 }
 
 async function init() {
@@ -954,7 +1006,6 @@ async function init() {
     db = null;
     showApp();
     await loadAllData();
-    renderSession();
     return;
   }
 
