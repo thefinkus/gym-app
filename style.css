@@ -1,0 +1,131 @@
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;font-size:15px;color:#111;background:#f7f7f7;min-height:100vh}
+.app{max-width:520px;margin:0 auto;background:#f7f7f7;min-height:100vh;padding-bottom:80px}
+
+/* Tab bar */
+.tab-bar{display:flex;background:#fff;border-bottom:1px solid #e5e5e5;position:sticky;top:0;z-index:100}
+.tab-btn{flex:1;padding:14px 8px;font-size:14px;border:none;border-bottom:2px solid transparent;background:none;color:#999;cursor:pointer;font-weight:400;font-family:inherit}
+.tab-btn.active{color:#111;border-bottom:2px solid #111;font-weight:500}
+
+/* Views */
+.view{display:none;padding:16px}
+.view.active{display:block}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 20px;font-size:14px;border-radius:10px;border:1px solid #ddd;background:#fff;color:#111;cursor:pointer;font-family:inherit;font-weight:400;min-height:48px;transition:opacity .15s}
+.btn:active{opacity:.7}
+.btn.primary{background:#111;color:#fff;border-color:#111;font-weight:500}
+.btn.sm{padding:9px 14px;font-size:13px;min-height:40px;border-radius:8px}
+.btn.block{width:100%;display:flex}
+.btn.ghost{border:none;background:none;color:#888;min-height:auto;padding:8px 12px}
+
+/* Session type buttons */
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.type-btn{padding:14px 10px;font-size:14px;border-radius:10px;border:1px solid #e0e0e0;background:#fafafa;color:#555;cursor:pointer;font-family:inherit;min-height:50px;transition:all .15s}
+.type-btn.selected{background:#111;color:#fff;border-color:#111}
+.type-btn:active{opacity:.7}
+
+/* Progress */
+.session-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.back-btn{border:none;background:none;font-size:20px;color:#888;cursor:pointer;padding:4px 8px 4px 0;line-height:1}
+.back-btn:active{color:#111}
+.progress-meta{display:flex;justify-content:space-between;font-size:13px;color:#999;flex:1}
+.progress-bar{height:3px;background:#eee;border-radius:2px;margin-bottom:18px;overflow:hidden}
+.progress-fill{height:100%;background:#111;border-radius:2px;transition:width .3s}
+
+/* Exercise cards */
+.ex-card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:opacity .2s}
+.ex-card.current{border:1.5px solid #111}
+.ex-card.done{opacity:.35}
+.ex-row{display:flex;gap:12px;align-items:flex-start}
+.ex-num{width:28px;height:28px;border-radius:50%;background:#f0f0f0;color:#888;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;margin-top:1px}
+.ex-num.cur{background:#111;color:#fff}
+.ex-name{font-size:15px;font-weight:500;margin-bottom:3px}
+.ex-detail{font-size:14px;color:#555}
+.ex-zone{font-size:12px;color:#bbb;margin-top:3px}
+.ex-btns{display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap}
+
+/* Weight input */
+.weight-input-group{display:flex;align-items:center;gap:6px;margin-top:10px;padding:8px 0}
+.weight-input-group .cnt-btn{width:32px;height:32px;border-radius:50%;border:1px solid #e0e0e0;background:#f5f5f5;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:#111;font-family:inherit}
+.weight-input-group .cnt-btn:active{opacity:.6}
+.weight-input{width:64px;text-align:center;font-size:16px;font-weight:500;border:1px solid #ddd;border-radius:8px;padding:6px 4px;font-family:inherit;background:#fff;color:#111}
+.weight-unit{font-size:13px;color:#888}
+
+/* Alternatives panel */
+.alt-panel{background:#f6f6f6;border-radius:8px;overflow:hidden;margin-top:10px}
+.alt-header{padding:8px 14px;font-size:12px;color:#999;border-bottom:1px solid #ebebeb}
+.alt-row{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #ebebeb}
+.alt-row:last-child{border-bottom:none}
+.alt-name{font-size:14px}
+.alt-zone{font-size:12px;color:#bbb;margin-top:1px}
+
+/* Done screen */
+.done-screen{text-align:center;padding:40px 24px}
+.done-icon{font-size:48px;margin-bottom:16px}
+.done-title{font-size:22px;font-weight:500;margin-bottom:8px}
+.done-sub{font-size:14px;color:#999;margin-bottom:20px}
+.done-comment{width:100%;padding:12px;font-size:14px;border:1px solid #e0e0e0;border-radius:10px;font-family:inherit;resize:vertical;min-height:60px;margin-bottom:16px;color:#111;background:#fff}
+.done-comment::placeholder{color:#bbb}
+.done-stats{display:flex;justify-content:center;gap:24px;margin-bottom:20px;font-size:13px;color:#888}
+
+/* Gym tab */
+.section-label{font-size:11px;font-weight:600;color:#bbb;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.device-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#fff;border:1px solid #ebebeb;border-radius:10px;margin-bottom:6px}
+.device-name{font-size:14px}
+.device-sub{font-size:12px;color:#bbb;margin-top:2px}
+.counter{display:flex;align-items:center;gap:10px}
+.cnt-btn{width:34px;height:34px;border-radius:50%;border:1px solid #e0e0e0;background:#f5f5f5;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;color:#111;font-family:inherit;transition:opacity .15s}
+.cnt-btn:active{opacity:.6}
+.cnt-val{font-size:14px;font-weight:500;min-width:22px;text-align:center}
+.del-btn{border:none;background:none;cursor:pointer;font-size:20px;color:#ccc;padding:4px;line-height:1}
+.del-btn:active{color:#999}
+
+/* Add device form */
+.add-form{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:14px;margin-top:8px;margin-bottom:16px}
+.input{padding:11px 12px;font-size:14px;border-radius:8px;border:1px solid #e0e0e0;background:#fff;font-family:inherit;width:100%;color:#111;outline:none}
+.input:focus{border-color:#999}
+.input-row{display:flex;gap:8px;margin-bottom:8px}
+
+/* Photo upload */
+.upload-area{display:block;border:1.5px dashed #ddd;border-radius:12px;padding:18px 16px;text-align:center;cursor:pointer;margin-bottom:16px;background:#fff;transition:background .15s}
+.upload-area:active{background:#f5f5f5}
+.upload-title{font-size:14px;font-weight:500;margin-bottom:4px}
+.upload-sub{font-size:12px;color:#bbb}
+.ai-result{font-size:13px;color:#555;padding:12px 14px;background:#f5f5f5;border-radius:8px;margin-bottom:16px;line-height:1.65;white-space:pre-wrap}
+
+/* Profile */
+.profile-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #f0f0f0;font-size:14px}
+.profile-row:last-child{border-bottom:none}
+.profile-label{color:#888}
+.profile-val{font-weight:500}
+.badge{font-size:11px;padding:4px 9px;border-radius:6px;background:#f0f0f0;color:#666}
+
+/* Zone block */
+.zone-block{margin-bottom:22px}
+
+/* Sticky save bar */
+.save-bar{position:sticky;bottom:0;padding:12px 0 0;background:linear-gradient(transparent,#f7f7f7 40%)}
+
+/* History tab */
+.history-card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:opacity .15s}
+.history-card:active{opacity:.7}
+.history-date{font-size:13px;color:#888;margin-bottom:4px}
+.history-type{font-size:15px;font-weight:500;margin-bottom:3px}
+.history-meta{font-size:13px;color:#bbb}
+.history-detail{margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0}
+.history-ex-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid #f8f8f8}
+.history-ex-row:last-child{border-bottom:none}
+.history-comment{font-size:13px;color:#666;font-style:italic;margin-top:8px;padding:8px 12px;background:#f8f8f8;border-radius:8px}
+.history-empty{text-align:center;padding:40px 20px;color:#999;font-size:14px}
+
+/* Settings section */
+.settings-section{margin-top:24px;padding-top:16px;border-top:1px solid #eee}
+.settings-field{margin-bottom:12px}
+.settings-field label{display:block;font-size:12px;color:#888;margin-bottom:4px}
+.settings-field input{width:100%;padding:10px 12px;font-size:14px;border:1px solid #e0e0e0;border-radius:8px;font-family:inherit;color:#111;background:#fff}
+.settings-field input:focus{outline:none;border-color:#999}
+.connection-status{font-size:12px;padding:6px 10px;border-radius:6px;margin-top:8px;display:inline-block}
+.connection-status.ok{background:#e8f5e9;color:#2e7d32}
+.connection-status.err{background:#fce4ec;color:#c62828}
+.connection-status.none{background:#f0f0f0;color:#888}
