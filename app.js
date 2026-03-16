@@ -197,12 +197,15 @@ async function loadProfile() {
 async function saveProfile(updates) {
   if (db && currentUser) {
     const payload = { ...updates, updated_at: new Date().toISOString() };
-    // Upsert: insert or update in one call
-    const { error } = await db.from("profiles").upsert({ id: currentUser.id, ...payload });
+    console.log("saveProfile: attempting upsert for user", currentUser.id);
+    const { data, error, status } = await db.from("profiles").upsert({ id: currentUser.id, ...payload }).select();
+    console.log("saveProfile result:", { data, error, status });
     if (error) {
       console.error("Profile save failed:", error);
       throw new Error("Profil konnte nicht gespeichert werden: " + error.message);
     }
+  } else {
+    console.warn("saveProfile: no db or no currentUser", { db: !!db, user: !!currentUser });
   }
   profile = { ...profile, ...updates };
 }
@@ -937,6 +940,7 @@ async function init() {
 
   // Check if already logged in
   const { data: { user } } = await db.auth.getUser();
+  console.log("init: getUser result", user ? user.email : "no user");
   if (user) {
     currentUser = user;
     showApp();
