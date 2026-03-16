@@ -900,10 +900,11 @@ async function saveProfileForm() {
   const btn = document.getElementById("profile-save-btn");
   if (btn) { btn.textContent = "Speichert..."; btn.disabled = true; }
   try {
+    alert("DEBUG: db=" + !!db + " user=" + (currentUser?.id || "null") + " age=" + updates.age);
     await saveProfile(updates);
+    alert("DEBUG: Speichern erfolgreich!");
   } catch (e) {
-    console.error("saveProfileForm error:", e);
-    alert("Speichern fehlgeschlagen — prüfe die Konsole.");
+    alert("FEHLER: " + e.message);
   }
   profileEditing = false;
   renderProfile();
