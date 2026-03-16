@@ -44,6 +44,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;fo
 .ex-card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:opacity .2s}
 .ex-card.current{border:1.5px solid #111}
 .ex-card.done{opacity:.35}
+.ex-card.skipped{opacity:.5;border-style:dashed}
+.ex-num.skip{background:#f5a623;color:#fff}
+.btn-jump{border:none;background:#f0f0f0;color:#888;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-jump:active{background:#e0e0e0;color:#111}
 .ex-row{display:flex;gap:12px;align-items:flex-start}
 .ex-num{width:28px;height:28px;border-radius:50%;background:#f0f0f0;color:#888;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;margin-top:1px}
 .ex-num.cur{background:#111;color:#fff}
@@ -54,10 +58,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;fo
 
 /* Weight input */
 .weight-input-group{display:flex;align-items:center;gap:6px;margin-top:10px;padding:8px 0}
-.weight-input-group .cnt-btn{width:32px;height:32px;border-radius:50%;border:1px solid #e0e0e0;background:#f5f5f5;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:#111;font-family:inherit}
+.weight-input-group .cnt-btn{width:36px;height:36px;border-radius:50%;border:1px solid #e0e0e0;background:#f5f5f5;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:#111;font-family:inherit;flex-shrink:0}
 .weight-input-group .cnt-btn:active{opacity:.6}
-.weight-input{width:64px;text-align:center;font-size:16px;font-weight:500;border:1px solid #ddd;border-radius:8px;padding:6px 4px;font-family:inherit;background:#fff;color:#111}
-.weight-unit{font-size:13px;color:#888}
+.weight-input{width:72px;text-align:center;font-size:18px;font-weight:600;border:1px solid #ddd;border-radius:8px;padding:8px 4px;font-family:inherit;background:#fff;color:#111;-moz-appearance:textfield}
+.weight-input::-webkit-inner-spin-button,.weight-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.weight-unit{font-size:14px;color:#888;min-width:28px}
 
 /* Alternatives panel */
 .alt-panel{background:#f6f6f6;border-radius:8px;overflow:hidden;margin-top:10px}
@@ -66,6 +71,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;fo
 .alt-row:last-child{border-bottom:none}
 .alt-name{font-size:14px}
 .alt-zone{font-size:12px;color:#bbb;margin-top:1px}
+.alt-skip{background:#f0f0f0;cursor:pointer;border-top:2px solid #e0e0e0}
+.alt-skip:active{background:#e8e8e8}
 
 /* Done screen */
 .done-screen{text-align:center;padding:40px 24px}
@@ -77,7 +84,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;fo
 .done-stats{display:flex;justify-content:center;gap:24px;margin-bottom:20px;font-size:13px;color:#888}
 
 /* Gym tab */
-.section-label{font-size:11px;font-weight:600;color:#bbb;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.section-label{font-size:11px;font-weight:600;color:#bbb;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
 .device-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#fff;border:1px solid #ebebeb;border-radius:10px;margin-bottom:6px}
 .device-name{font-size:14px}
 .device-sub{font-size:12px;color:#bbb;margin-top:2px}

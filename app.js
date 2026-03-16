@@ -95,6 +95,7 @@ let exercises = [];
 let curIdx = 0;
 let altOpen = -1;
 let sessionActive = false;
+let skipped = []; // indices of skipped exercises (come back later)
 let profileEditing = false;
 let editingDevice = -1; // index of device being edited: "zone:idx"
 let sessionLog = { type: null, startedAt: null, exercises: [] };
@@ -435,7 +436,8 @@ function renderSession() {
         <button class="btn ghost block" onclick="resetSession()" style="margin-top:8px">Verwerfen</button>
       </div>`;
   } else {
-    const pct = Math.round(curIdx / exercises.length * 100);
+    const doneCount = exercises.filter((_, i) => i < curIdx && !skipped.includes(i)).length + skipped.filter(s => sessionLog.exercises[s]?.actualWeight != null).length;
+    const pct = Math.round(doneCount / exercises.length * 100);
     let html = `
       <div class="session-header">
         <button class="back-btn" onclick="backFromSession()">‹</button>
@@ -444,18 +446,21 @@ function renderSession() {
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
 
     exercises.forEach((ex, i) => {
-      const isCur = i === curIdx, isDone = i < curIdx;
+      const isCur = i === curIdx;
+      const isDone = sessionLog.exercises[i]?.actualWeight != null || (i < curIdx && !skipped.includes(i));
+      const isSkipped = skipped.includes(i) && i !== curIdx;
       const weightDisplay = getWeightDisplay(ex.name) || ex.fallbackWeight || "";
       const loggedWeight = sessionLog.exercises[i]?.actualWeight;
 
-      html += `<div class="ex-card${isCur?" current":""}${isDone?" done":""}">
+      html += `<div class="ex-card${isCur?" current":""}${isDone && !isCur?" done":""}${isSkipped?" skipped":""}">
         <div class="ex-row">
-          <div class="ex-num${isCur?" cur":""}">${isDone?"✓":i+1}</div>
+          <div class="ex-num${isCur?" cur":""}${isSkipped?" skip":""}">${isDone && !isCur?"✓":isSkipped?"⏭":i+1}</div>
           <div style="flex:1">
             <div class="ex-name">${ex.name}</div>
-            <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}${isDone && loggedWeight != null ? " → " + loggedWeight + " " + getWeightUnit(ex.name) : ""}</div>
+            <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}${isDone && !isCur && loggedWeight != null ? " → " + loggedWeight + " " + getWeightUnit(ex.name) : ""}</div>
             <div class="ex-zone">${ex.zone}</div>
           </div>
+          ${!isCur && !isDone && !isSkipped && i > curIdx ? `<button class="btn-jump" onclick="jumpToEx(${i})" title="Vorziehen">▶</button>` : ""}
         </div>`;
 
       if (isCur) {
@@ -464,21 +469,28 @@ function renderSession() {
         if (wNum != null) {
           html += `<div class="weight-input-group">
               <button class="cnt-btn" onclick="adjustWeight(-2.5)">−</button>
-              <input type="text" inputmode="decimal" class="weight-input" id="weight-val" value="${wNum}" onfocus="this.select()">
+              <input type="number" inputmode="decimal" step="0.5" class="weight-input" id="weight-val" value="${wNum}" onfocus="this.select()">
               <span class="weight-unit">${wUnit}</span>
               <button class="cnt-btn" onclick="adjustWeight(2.5)">+</button>
             </div>`;
         }
         html += `<div class="ex-btns">
           <button class="btn primary sm" onclick="doneEx()">Erledigt →</button>
-          ${ex.alts?.length ? `<button class="btn sm" onclick="toggleAlts(${i})">${altOpen===i?"✕ Schließen":"Besetzt?"}</button>` : ""}
+          <button class="btn sm" onclick="toggleAlts(${i})">${altOpen===i?"✕ Schließen":"Besetzt?"}</button>
         </div>`;
-        if (altOpen === i && ex.alts?.length) {
-          html += `<div class="alt-panel"><div class="alt-header">Alternative wählen:</div>
-            ${ex.alts.map((alt, ai) => `<div class="alt-row">
-                <div><div class="alt-name">${alt.name}</div><div class="alt-zone">${alt.zone}</div></div>
-                <button class="btn primary sm" onclick="swapEx(${i},${ai})">Wählen</button>
-              </div>`).join("")}
+        if (altOpen === i) {
+          html += `<div class="alt-panel">`;
+          if (ex.alts?.length) {
+            html += `<div class="alt-header">Alternative wählen</div>
+              ${ex.alts.map((alt, ai) => `<div class="alt-row">
+                  <div><div class="alt-name">${alt.name}</div><div class="alt-zone">📍 ${alt.zone}</div></div>
+                  <button class="btn primary sm" onclick="swapEx(${i},${ai})">Wählen</button>
+                </div>`).join("")}`;
+          }
+          html += `<div class="alt-row alt-skip" onclick="skipEx()">
+              <div><div class="alt-name">Überspringen</div><div class="alt-zone">Mach ich später — kommt am Ende wieder</div></div>
+              <span style="font-size:18px">⏭</span>
+            </div>
           </div>`;
         }
       }
@@ -505,7 +517,7 @@ function startSession() {
   }
   exercises = JSON.parse(JSON.stringify(SESSIONS[sessionType] || SESSIONS["Oberkörper"]));
   exercises.forEach(ex => { const w = getWeightDisplay(ex.name); if (w) ex.fallbackWeight = w; });
-  curIdx = 0; altOpen = -1; sessionActive = true;
+  curIdx = 0; altOpen = -1; skipped = []; sessionActive = true;
   sessionLog = {
     type: sessionType, startedAt: new Date(),
     exercises: exercises.map(ex => ({
@@ -530,7 +542,49 @@ function doneEx() {
   if (input && sessionLog.exercises[curIdx]) {
     sessionLog.exercises[curIdx].actualWeight = parseFloat(input.value) || null;
   }
-  altOpen = -1; curIdx++;
+  // Remove from skipped if it was there
+  skipped = skipped.filter(s => s !== curIdx);
+  altOpen = -1;
+  advanceToNext();
+  persistActiveSession();
+  renderSession();
+}
+
+function advanceToNext() {
+  // Find next undone exercise
+  for (let i = curIdx + 1; i < exercises.length; i++) {
+    if (!skipped.includes(i)) { curIdx = i; return; }
+  }
+  // All non-skipped done — loop back to first skipped
+  if (skipped.length > 0) {
+    curIdx = skipped[0];
+    skipped = skipped.slice(1);
+    return;
+  }
+  // Everything done
+  curIdx = exercises.length;
+}
+
+function skipEx() {
+  if (!skipped.includes(curIdx)) skipped.push(curIdx);
+  altOpen = -1;
+  advanceToNext();
+  persistActiveSession();
+  renderSession();
+}
+
+function jumpToEx(i) {
+  // Save current weight if entered
+  const input = document.getElementById("weight-val");
+  if (input && sessionLog.exercises[curIdx]) {
+    const val = parseFloat(input.value);
+    if (val) sessionLog.exercises[curIdx].actualWeight = val;
+  }
+  // Skip current, jump to target
+  if (!skipped.includes(curIdx)) skipped.push(curIdx);
+  skipped = skipped.filter(s => s !== i); // un-skip target if it was skipped
+  curIdx = i;
+  altOpen = -1;
   persistActiveSession();
   renderSession();
 }
@@ -558,7 +612,7 @@ function backFromSession() {
 }
 
 function resetSession() {
-  sessionActive = false; curIdx = 0; altOpen = -1;
+  sessionActive = false; curIdx = 0; altOpen = -1; skipped = [];
   localStorage.removeItem("gymapp_active_session");
   renderSession();
 }
@@ -566,7 +620,7 @@ function resetSession() {
 function persistActiveSession() {
   if (!sessionActive) return;
   localStorage.setItem("gymapp_active_session", JSON.stringify({
-    sessionType, exercises, curIdx, altOpen, sessionLog: {
+    sessionType, exercises, curIdx, altOpen, skipped, sessionLog: {
       ...sessionLog, startedAt: sessionLog.startedAt?.toISOString()
     }
   }));
@@ -579,6 +633,7 @@ function restoreActiveSession() {
   exercises = saved.exercises;
   curIdx = saved.curIdx;
   altOpen = saved.altOpen;
+  skipped = saved.skipped || [];
   sessionLog = { ...saved.sessionLog, startedAt: new Date(saved.sessionLog.startedAt) };
   sessionActive = true;
   return true;
@@ -650,8 +705,8 @@ function renderGym() {
 
   Object.entries(gym).forEach(([zone, devices]) => {
     html += `<div class="zone-block">
-      <div class="section-label">${zone}
-        <button class="del-btn" onclick="delZone('${zone}')" title="Zone löschen" style="float:right">×</button>
+      <div class="section-label"><span>${zone}</span>
+        <button class="del-btn" onclick="delZone('${zone}')" title="Zone löschen">×</button>
       </div>`;
     devices.forEach((d, di) => {
       html += `<div class="device-row" onclick="editDevice('${zone}',${di})">
@@ -875,9 +930,9 @@ function renderProfile() {
           <div class="profile-row">
             <div><div>${n}</div><div style="font-size:12px;color:#bbb">${d.zone}</div></div>
             <div style="display:flex;align-items:center;gap:4px">
-              <button class="cnt-btn" onclick="adjustProfileWeight('${n}',-2.5)">−</button>
-              <span class="profile-val" id="pw-${n.replace(/[^a-zA-Z0-9]/g,'_')}">${d.w} ${d.unit}</span>
-              <button class="cnt-btn" onclick="adjustProfileWeight('${n}',2.5)">+</button>
+              <button class="cnt-btn" onclick="adjustProfileWeight('${n}',-2.5)" style="width:30px;height:30px;font-size:16px">−</button>
+              <span class="profile-val" id="pw-${n.replace(/[^a-zA-Z0-9]/g,'_')}" style="min-width:64px;text-align:center">${d.w} ${d.unit}</span>
+              <button class="cnt-btn" onclick="adjustProfileWeight('${n}',2.5)" style="width:30px;height:30px;font-size:16px">+</button>
             </div>
           </div>`).join("")}
       </div>
