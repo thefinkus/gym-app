@@ -98,6 +98,7 @@ let sessionActive = false;
 let skipped = []; // indices of skipped exercises (come back later)
 let completed = new Set(); // indices of completed exercises
 let picking = false; // true = user picks next exercise after skip
+let outOfOrder = false; // true = sequence was broken (skip/jump/pick)
 let profileEditing = false;
 let editingDevice = -1; // index of device being edited: "zone:idx"
 let sessionLog = { type: null, startedAt: null, exercises: [] };
@@ -455,8 +456,9 @@ function renderSession() {
       const loggedWeight = sessionLog.exercises[i]?.actualWeight;
 
       if (picking) {
-        // Picking mode: show selectable exercises
-        const canPick = !isDone && !isSkipped && ex.muscle !== "cardio";
+        // Picking mode: show selectable exercises with muscle-group color coding
+        const canPick = !isDone && ex.muscle !== "cardio";
+        const sameMuscleAsPick = canPick && ex.muscle === curMuscle && ex.muscle !== "cardio";
         html += `<div class="ex-card${isDone?" done":""}${isSkipped?" skipped":""}">
           <div class="ex-row">
             <div class="ex-num${isSkipped?" skip":""}">${isDone?"✓":isSkipped?"⏭":i+1}</div>
@@ -465,12 +467,12 @@ function renderSession() {
               <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}</div>
               <div class="ex-zone">${ex.zone}</div>
             </div>
-            ${canPick ? `<button class="btn primary sm" onclick="pickEx(${i})">Wählen</button>` : ""}
+            ${canPick ? `<button class="btn-jump ${sameMuscleAsPick?"same":""}" onclick="pickEx(${i})" style="width:auto;padding:8px 14px;border-radius:8px;font-size:13px" title="${sameMuscleAsPick?"Gleiche Muskelgruppe":"Andere Muskelgruppe — safe"}">Wählen</button>` : ""}
           </div>
         </div>`;
       } else {
         // Normal mode
-        const canJump = !isCur && !isDone && !(isSkipped && !isCur) && ex.muscle !== "cardio";
+        const canJump = !isCur && !isDone && ex.muscle !== "cardio" && curMuscle !== "cardio";
         const sameMuscle = canJump && ex.muscle === curMuscle && ex.muscle !== "cardio";
 
         html += `<div class="ex-card${isCur?" current":""}${isDone?" done":""}${isSkipped && !isCur?" skipped":""}">
@@ -565,9 +567,20 @@ function doneEx() {
     sessionLog.exercises[curIdx].actualWeight = parseFloat(input.value) || null;
   }
   completed.add(curIdx);
-  skipped = skipped.filter(s => s !== curIdx);
+  skipped = [];  // Alle geskippten Übungen werden freigeschaltet
   altOpen = -1;
-  advanceToNext();
+
+  // Wie viele Übungen sind noch offen?
+  const remaining = exercises.filter((_, i) => !completed.has(i));
+
+  if (remaining.length === 0) {
+    // Alle fertig → renderSession() zeigt Done-Screen
+  } else if (remaining.length === 1 || !outOfOrder) {
+    // Nur noch 1 übrig ODER nie out-of-order → auto-advance
+    advanceToNext();
+  } else {
+    picking = true;  // Mehrere offen + outOfOrder → User wählt
+  }
   persistActiveSession();
   renderSession();
 }
@@ -590,6 +603,7 @@ function advanceToNext() {
 function skipEx() {
   if (!skipped.includes(curIdx)) skipped.push(curIdx);
   altOpen = -1;
+  outOfOrder = true;
   picking = true;
   persistActiveSession();
   renderSession();
@@ -651,7 +665,7 @@ function resetSession() {
 function persistActiveSession() {
   if (!sessionActive) return;
   localStorage.setItem("gymapp_active_session", JSON.stringify({
-    sessionType, exercises, curIdx, altOpen, skipped, picking,
+    sessionType, exercises, curIdx, altOpen, skipped, picking, outOfOrder,
     completed: [...completed],
     sessionLog: { ...sessionLog, startedAt: sessionLog.startedAt?.toISOString() }
   }));
@@ -667,6 +681,7 @@ function restoreActiveSession() {
   skipped = saved.skipped || [];
   completed = new Set(saved.completed || []);
   picking = saved.picking || false;
+  outOfOrder = saved.outOfOrder || false;
   sessionLog = { ...saved.sessionLog, startedAt: new Date(saved.sessionLog.startedAt) };
   sessionActive = true;
   return true;
