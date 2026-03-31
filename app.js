@@ -181,6 +181,7 @@ let profileEditing = false;
 let editingDevice = -1; // index of device being edited: "zone:idx"
 let sessionLog = { type: null, startedAt: null, exercises: [] };
 let curSet = 0; // current set index within current exercise (for per-set weight)
+let sessionEnding = false; // true = user wants to finish early
 let customAlts = {}; // { "exerciseName": [{name, zone}, ...] }
 let historyData = [];
 let historyExpanded = -1;
@@ -689,21 +690,23 @@ function renderSession() {
         ).join("")}
       </div>
       <button class="btn primary block" onclick="startSession()" style="margin-top:4px">Starten</button>`;
-  } else if (completed.size >= exercises.length) {
+  } else if (completed.size >= exercises.length || sessionEnding) {
     const duration = Math.round((new Date() - sessionLog.startedAt) / 1000);
     const mins = Math.floor(duration / 60);
+    const allDone = completed.size >= exercises.length;
     el.innerHTML = `
       <div class="done-screen">
-        <div class="done-icon">✓</div>
-        <div class="done-title">Session done</div>
-        <div class="done-sub">${exercises.length} Übungen · ${sessionType}</div>
+        <div class="done-icon">${allDone ? "✓" : "↗"}</div>
+        <div class="done-title">${allDone ? "Session done" : "Session beenden"}</div>
+        <div class="done-sub">${completed.size}/${exercises.length} Übungen · ${sessionType}</div>
         <div class="done-stats">
           <span>${mins} min</span>
           <span>${sessionLog.exercises.filter(e => e.actualWeights?.some(w => w != null)).length} Gewichte geloggt</span>
         </div>
         <textarea class="done-comment" id="session-comment" placeholder="Wie war's? (optional)"></textarea>
         <button class="btn primary block" onclick="finishSession()" id="finish-btn">Session speichern</button>
-        <button class="btn ghost block" onclick="resetSession()" style="margin-top:8px">Verwerfen</button>
+        <button class="btn ghost block" onclick="sessionEnding=false;renderSession()" style="margin-top:8px">Zurück zur Session</button>
+        <button class="btn ghost block" onclick="resetSession()" style="margin-top:4px;color:#c62828">Verwerfen</button>
       </div>`;
   } else {
     const pct = Math.round(completed.size / exercises.length * 100);
@@ -1100,12 +1103,19 @@ function addCustomAlt(exIdx) {
 }
 
 function backFromSession() {
-  if (curIdx > 0 && !confirm("Session abbrechen? Fortschritt geht verloren.")) return;
-  resetSession();
+  if (completed.size === 0) {
+    // Nothing done yet — just abort
+    if (!confirm("Session abbrechen?")) return;
+    resetSession();
+  } else {
+    // Some exercises done — go to done screen
+    sessionEnding = true;
+    renderSession();
+  }
 }
 
 function resetSession() {
-  sessionActive = false; curIdx = 0; curSet = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false;
+  sessionActive = false; curIdx = 0; curSet = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false; sessionEnding = false;
   localStorage.removeItem("gymapp_active_session");
   renderSession();
 }
