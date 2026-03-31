@@ -750,7 +750,7 @@ function renderSession() {
             <div class="ex-num${isCur?" cur":""}${isSkipped && !isCur?" skip":""}">${isDone?"✓":isSkipped && !isCur?"⏭":i+1}</div>
             <div style="flex:1">
               <div class="ex-name">${ex.name}${EXERCISE_DEMOS[ex.name] ? ` <span class="demo-icon" onclick="event.stopPropagation();showDemo('${ex.name.replace(/'/g,"\\'")}')">ℹ</span>` : ""}</div>
-              <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}${isDone && sessionLog.exercises[i]?.actualWeights?.some(w => w != null) ? " → " + formatLoggedWeights(sessionLog.exercises[i]) : ""}</div>
+              <div class="ex-detail">${getActualSets(ex, sessionLog.exercises[i], isDone)}${weightDisplay ? " · " + weightDisplay : ""}${isDone && sessionLog.exercises[i]?.actualWeights?.some(w => w != null) ? " → " + formatLoggedWeights(sessionLog.exercises[i]) : ""}</div>
               <div class="ex-zone">${ex.zone}</div>
             </div>
             ${canJump ? `<button class="btn-jump ${sameMuscle?"same":""}" onclick="jumpToEx(${i})" title="${sameMuscle?"Gleiche Muskelgruppe":"Andere Muskelgruppe — safe"}">▶</button>` : ""}
@@ -788,9 +788,10 @@ function renderSession() {
             const allSetsDone = logEntry.setsCompleted.every(Boolean);
             const doneCount = logEntry.setsCompleted.filter(Boolean).length;
             html += `<div class="ex-btns">
-              <button class="btn primary sm" onclick="doneEx()" ${allSetsDone ? '' : 'disabled style="opacity:0.4"'}>
-                ${allSetsDone ? 'Erledigt →' : doneCount + '/' + logEntry.setCount + ' Sätze'}
+              <button class="btn primary sm" onclick="doneEx()">
+                ${allSetsDone ? 'Erledigt →' : doneCount + '/' + logEntry.setCount + ' Sätze — Erledigt →'}
               </button>
+              <button class="btn sm" onclick="addSet(${i})" title="Zusätzlichen Satz hinzufügen" style="padding:9px 10px">+ Satz</button>
               ${ex.muscle !== "cardio" ? `<button class="btn sm" onclick="toggleAlts(${i})">${altOpen===i?"✕ Schließen":"Besetzt?"}</button>` : ""}
             </div>`;
           } else {
@@ -885,12 +886,23 @@ function startSession() {
   renderSession();
 }
 
+function getActualSets(ex, logEntry, isDone) {
+  if (!isDone || !logEntry?.setsCompleted) return ex.sets;
+  const doneCount = logEntry.setsCompleted.filter(Boolean).length;
+  const totalCount = logEntry.setCount || parseSets(ex.sets).count;
+  if (doneCount >= totalCount) return ex.sets; // all done — show original
+  // Partial: show actual count with original reps
+  const parsed = parseSets(ex.sets);
+  if (parsed.isCardio) return ex.sets;
+  return `${doneCount}×${parsed.reps}`;
+}
+
 function formatLoggedWeights(logEntry) {
-  if (!logEntry?.actualWeights) return "";
-  const weights = logEntry.actualWeights.filter(w => w != null);
+  if (!logEntry?.actualWeights || !logEntry?.setsCompleted) return "";
+  // Only show weights for completed sets
+  const weights = logEntry.actualWeights.filter((w, i) => w != null && logEntry.setsCompleted[i]);
   if (!weights.length) return "";
   const unit = logEntry.actualUnit || "kg";
-  // If all weights are the same, show just one value
   if (weights.every(w => w === weights[0])) return weights[0] + " " + unit;
   return weights.join(" → ") + " " + unit;
 }
@@ -906,6 +918,19 @@ function adjustSetWeight(setIdx, delta) {
   const input = document.getElementById(`set-weight-${setIdx}`);
   if (!input) return;
   input.value = Math.max(0, Math.round(((parseFloat(input.value) || 0) + delta) * 2) / 2);
+}
+
+function addSet(exIdx) {
+  const logEntry = sessionLog.exercises[exIdx];
+  if (!logEntry) return;
+  const lastWeight = logEntry.actualWeights[logEntry.actualWeights.length - 1] ?? getWeightNum(exercises[exIdx]?.name);
+  logEntry.setCount++;
+  logEntry.actualWeights.push(lastWeight);
+  logEntry.setsCompleted.push(false);
+  // If all previous sets were done, point curSet to the new one
+  if (logEntry.setsCompleted.slice(0, -1).every(Boolean)) curSet = logEntry.setCount - 1;
+  persistActiveSession();
+  renderSession();
 }
 
 function doneSet(setIdx) {
@@ -944,8 +969,8 @@ function doneEx() {
         logEntry.setsCompleted[0] = true;
       }
     }
-    // Mark all sets as done (in case user clicks "Erledigt" when all sets are individually done)
-    logEntry.setsCompleted = logEntry.setsCompleted.map(() => true);
+    // For single-set / cardio: mark the one set as done
+    // For multi-set: keep setsCompleted as-is (user may have done fewer sets intentionally)
   }
   completed.add(curIdx);
   curSet = 0;
