@@ -82,6 +82,84 @@ const GYM_DEFAULT = {
   ]
 };
 
+// ── EXERCISE DEMOS (GIF/image URLs, add manually per exercise) ──
+
+const _GH = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
+function _gh(path) { return [`${_GH}/${path}/0.jpg`, `${_GH}/${path}/1.jpg`]; }
+const EXERCISE_DEMOS = {
+  // Main exercises
+  "Bankdrücken": _gh("Barbell_Bench_Press_-_Medium_Grip"),
+  "Latzug": _gh("Wide-Grip_Lat_Pulldown"),
+  "Sitzrudern (Kabel)": _gh("Seated_Cable_Rows"),
+  "Schulterdrücken KH": _gh("Dumbbell_Shoulder_Press"),
+  "Face Pulls": _gh("Face_Pull"),
+  "Plank": _gh("Plank"),
+  "Beinpresse": _gh("Leg_Press"),
+  "Bulgarian Split Squat": _gh("Barbell_Side_Split_Squat"),
+  "Beinbeuger": _gh("Lying_Leg_Curls"),
+  "Wadenheben exz.": _gh("Standing_Calf_Raises"),
+  // Alternatives
+  "KH Bankdrücken": _gh("Dumbbell_Bench_Press"),
+  "Butterfly / Pec Deck": _gh("Butterfly"),
+  "Kabelzug Flyes": _gh("Cable_Crossover"),
+  "Klimmzug-Assist": _gh("Band_Assisted_Pull-Up"),
+  "Kabel-Pulldown": _gh("V-Bar_Pulldown"),
+  "Rudermaschine": _gh("Leverage_Iso_Row"),
+  "Arnold Press KH": _gh("Arnold_Dumbbell_Press"),
+  "Band Pull-Aparts": _gh("Band_Pull_Apart"),
+  "Dead Bug": _gh("Dead_Bug"),
+  "Goblet Squat KH": _gh("Goblet_Squat"),
+  "Hack Squat Maschine": _gh("Hack_Squat"),
+  "Reverse Fly Maschine": _gh("Reverse_Machine_Flyes"),
+  "Stiff Leg Deadlift KH": _gh("Stiff-Legged_Dumbbell_Deadlift"),
+  "Donkey Calf Raise": _gh("Donkey_Calf_Raises"),
+  "Glute Bridge": _gh("Barbell_Glute_Bridge"),
+  "Side Plank": _gh("Side_Bridge"),
+  "Nordic Curls": _gh("Natural_Glute_Ham_Raise"),
+  "Maschinen Schulterdrücken": _gh("Seated_Dumbbell_Press"),
+  "Einbeinige Beinpresse": _gh("Leg_Press"),
+  "Ausfallschritte KH": _gh("Dumbbell_Lunges"),
+  "Wadenheben einbeinig": _gh("Calf_Raise_On_A_Dumbbell"),
+  "Crosstrainer": _gh("Elliptical_Trainer"),
+  "Crosstrainer Warm-up": _gh("Elliptical_Trainer"),
+  "Crosstrainer Cool-down": _gh("Elliptical_Trainer"),
+};
+
+// ── EQUIPMENT ZONE MAP (for auto-categorization) ────────
+
+const EQUIPMENT_ZONE_MAP = {
+  "beinpresse": "Kraftbereich EG", "beinbeuger": "Kraftbereich EG", "beinstrecker": "Kraftbereich EG",
+  "wadenheben": "Kraftbereich EG", "bankdrücken": "Kraftbereich EG", "brustpresse": "Kraftbereich EG",
+  "latzug": "Kraftbereich EG", "butterfly": "Kraftbereich EG", "pec deck": "Kraftbereich EG",
+  "klimmzug": "Kraftbereich EG", "schulterdrücken": "Kraftbereich EG", "dip": "Kraftbereich EG",
+  "hack squat": "Kraftbereich EG", "hip thrust": "Kraftbereich EG", "adduktor": "Kraftbereich EG",
+  "abduktor": "Kraftbereich EG", "rudermaschine": "Kraftbereich EG", "reverse fly": "Kraftbereich EG",
+  "rudergerät": "Cardio EG", "concept2": "Cardio EG", "laufband": "Cardio EG",
+  "crosstrainer": "Cardio EG", "ergometer": "Cardio EG", "fahrrad": "Cardio EG",
+  "stepper": "Cardio EG", "elliptical": "Cardio EG",
+  "kabelzug": "Kabelzug", "functional trainer": "Kabelzug", "cable": "Kabelzug",
+  "kurzhantel": "Kraftbereich OG", "power rack": "Kraftbereich OG", "langhantel": "Kraftbereich OG",
+  "hantelbank": "Kraftbereich OG", "sz-stange": "Kraftbereich OG",
+  "matte": "Matten", "schaumrolle": "Matten", "trx": "Matten", "band": "Matten",
+  "stretching": "Matten", "foam roller": "Matten"
+};
+
+// ── HELPERS ──────────────────────────────────────────────
+
+function parseSets(str) {
+  const m = str.match(/^(\d+)\s*[×x]\s*(.+)$/i);
+  if (m) return { count: parseInt(m[1]), reps: m[2], isCardio: false };
+  return { count: 1, reps: str, isCardio: true };
+}
+
+function guessZone(name) {
+  const lower = name.toLowerCase();
+  for (const [keyword, zone] of Object.entries(EQUIPMENT_ZONE_MAP)) {
+    if (lower.includes(keyword)) return zone;
+  }
+  return null;
+}
+
 // ── STATE ────────────────────────────────────────────────
 
 let db = null; // Supabase client
@@ -102,6 +180,8 @@ let outOfOrder = false; // true = sequence was broken (skip/jump/pick)
 let profileEditing = false;
 let editingDevice = -1; // index of device being edited: "zone:idx"
 let sessionLog = { type: null, startedAt: null, exercises: [] };
+let curSet = 0; // current set index within current exercise (for per-set weight)
+let customAlts = {}; // { "exerciseName": [{name, zone}, ...] }
 let historyData = [];
 let historyExpanded = -1;
 
@@ -290,17 +370,22 @@ async function saveSessionToSupabase(comment) {
     comment: comment || null
   };
 
-  const exerciseRows = sessionLog.exercises.map((ex, i) => ({
-    exercise_order: i + 1,
-    exercise_name: ex.name,
-    planned_sets: ex.sets,
-    planned_weight: ex.plannedWeight,
-    actual_weight: ex.actualWeight,
-    actual_weight_unit: ex.actualUnit,
-    zone: ex.zone,
-    was_alternative: ex.wasAlt || false,
-    original_exercise: ex.originalName || null
-  }));
+  const exerciseRows = sessionLog.exercises.map((ex, i) => {
+    const weights = ex.actualWeights?.filter(w => w != null) || [];
+    const lastWeight = weights.length ? weights[weights.length - 1] : null;
+    return {
+      exercise_order: i + 1,
+      exercise_name: ex.name,
+      planned_sets: ex.sets,
+      planned_weight: ex.plannedWeight,
+      actual_weight: lastWeight, // backward compat: last set's weight
+      actual_weights_json: weights.length > 1 ? JSON.stringify(ex.actualWeights) : null,
+      actual_weight_unit: ex.actualUnit,
+      zone: ex.zone,
+      was_alternative: ex.wasAlt || false,
+      original_exercise: ex.originalName || null
+    };
+  });
 
   if (db && currentUser) {
     try {
@@ -312,17 +397,23 @@ async function saveSessionToSupabase(comment) {
       const { error: eErr } = await db.from("session_exercises").insert(exRows);
       if (eErr) throw eErr;
 
-      // Upsert changed weights
+      // Upsert changed weights (use last set's weight)
       const weightUpdates = sessionLog.exercises
-        .filter(ex => ex.actualWeight != null && WEIGHTS[ex.name])
-        .map(ex => ({
-          user_id: currentUser.id,
-          exercise_name: ex.name,
-          last_weight: ex.actualWeight,
-          unit: ex.actualUnit,
-          zone: ex.zone,
-          updated_at: new Date().toISOString()
-        }));
+        .filter(ex => {
+          const weights = ex.actualWeights?.filter(w => w != null) || [];
+          return weights.length > 0 && WEIGHTS[ex.name];
+        })
+        .map(ex => {
+          const weights = ex.actualWeights.filter(w => w != null);
+          return {
+            user_id: currentUser.id,
+            exercise_name: ex.name,
+            last_weight: weights[weights.length - 1],
+            unit: ex.actualUnit,
+            zone: ex.zone,
+            updated_at: new Date().toISOString()
+          };
+        });
 
       if (weightUpdates.length) {
         await db.from("exercise_weights").upsert(weightUpdates, { onConflict: "user_id,exercise_name" });
@@ -347,7 +438,8 @@ async function saveSessionToSupabase(comment) {
   localStorage.setItem("gymapp_history", JSON.stringify(localHistory));
 
   sessionLog.exercises.forEach(ex => {
-    if (ex.actualWeight != null && WEIGHTS[ex.name]) WEIGHTS[ex.name].w = ex.actualWeight;
+    const weights = ex.actualWeights?.filter(w => w != null) || [];
+    if (weights.length && WEIGHTS[ex.name]) WEIGHTS[ex.name].w = weights[weights.length - 1];
   });
   localStorage.setItem("gymapp_weights", JSON.stringify(WEIGHTS));
   return false;
@@ -387,6 +479,181 @@ async function loadHistory() {
     }
   }
   historyData = JSON.parse(localStorage.getItem("gymapp_history") || "[]");
+}
+
+// ── CUSTOM ALTERNATIVES ─────────────────────────────────
+
+async function loadCustomAlts() {
+  if (db && currentUser) {
+    try {
+      const { data, error } = await db.from("custom_alternatives").select("*");
+      if (!error && data && data.length) {
+        customAlts = {};
+        data.forEach(row => {
+          if (!customAlts[row.exercise_name]) customAlts[row.exercise_name] = [];
+          customAlts[row.exercise_name].push({ name: row.alt_name, zone: row.alt_zone });
+        });
+        localStorage.setItem("gymapp_custom_alts", JSON.stringify(customAlts));
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to load custom alts:", e);
+    }
+  }
+  const cached = JSON.parse(localStorage.getItem("gymapp_custom_alts") || "null");
+  if (cached) customAlts = cached;
+}
+
+async function saveCustomAltsToSupabase() {
+  localStorage.setItem("gymapp_custom_alts", JSON.stringify(customAlts));
+  if (!db || !currentUser) return;
+  try {
+    await db.from("custom_alternatives").delete().eq("user_id", currentUser.id);
+    const rows = [];
+    Object.entries(customAlts).forEach(([exName, alts]) => {
+      alts.forEach(alt => {
+        rows.push({ user_id: currentUser.id, exercise_name: exName, alt_name: alt.name, alt_zone: alt.zone });
+      });
+    });
+    if (rows.length) await db.from("custom_alternatives").insert(rows);
+  } catch (e) {
+    console.error("Failed to save custom alts:", e);
+  }
+}
+
+// ── EXERCISE PICKER ─────────────────────────────────────
+
+let _pickerCallback = null;
+
+function getAllKnownExercises() {
+  const exSet = new Map(); // name → {name, zone, sets, muscle}
+  // From all session templates
+  Object.values(SESSIONS).forEach(exList => {
+    exList.forEach(ex => {
+      if (!exSet.has(ex.name)) exSet.set(ex.name, { name: ex.name, zone: ex.zone, sets: ex.sets, muscle: ex.muscle });
+      (ex.alts || []).forEach(alt => {
+        if (!exSet.has(alt.name)) exSet.set(alt.name, { name: alt.name, zone: alt.zone, sets: ex.sets, muscle: ex.muscle });
+      });
+    });
+  });
+  // From gym equipment
+  Object.entries(gym).forEach(([zone, devices]) => {
+    devices.forEach(d => {
+      if (!exSet.has(d.name)) exSet.set(d.name, { name: d.name, zone, sets: "3×10", muscle: "misc" });
+    });
+  });
+  return [...exSet.values()].sort((a, b) => a.name.localeCompare(b.name, "de"));
+}
+
+function renderExercisePicker(options, onSelect) {
+  _pickerCallback = onSelect;
+  const exclude = new Set(options.exclude || []);
+  const all = getAllKnownExercises().filter(e => !exclude.has(e.name));
+
+  const overlay = document.createElement("div");
+  overlay.id = "exercise-picker-overlay";
+  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;justify-content:center";
+  overlay.onclick = (e) => { if (e.target === overlay) closeExercisePicker(); };
+
+  let html = `<div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:75vh;display:flex;flex-direction:column;padding:16px 16px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:15px;font-weight:500">Übung wählen</span>
+      <button class="btn sm" onclick="closeExercisePicker()">×</button>
+    </div>
+    <input class="input" id="picker-search" placeholder="Suchen oder neue Übung eingeben..." style="margin-bottom:12px" oninput="filterPicker()">
+    <div id="picker-list" style="overflow-y:auto;flex:1;padding-bottom:16px">`;
+
+  all.forEach(ex => {
+    html += `<div class="picker-row" data-name="${ex.name.toLowerCase()}" onclick="pickExercise('${ex.name.replace(/'/g, "\\'")}')">
+      <div><div style="font-size:14px;font-weight:500">${ex.name}</div><div style="font-size:12px;color:#bbb">${ex.zone}</div></div>
+    </div>`;
+  });
+
+  html += `<div id="picker-freetext" style="display:none;padding:12px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0" onclick="pickFreetext()">
+      <div style="font-size:14px;font-weight:500;color:#111" id="picker-freetext-name"></div>
+      <div style="font-size:12px;color:#bbb">Neue Übung erstellen</div>
+    </div>
+    </div></div>`;
+
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+  document.getElementById("picker-search").focus();
+}
+
+function filterPicker() {
+  const q = (document.getElementById("picker-search")?.value || "").toLowerCase().trim();
+  const rows = document.querySelectorAll("#picker-list .picker-row");
+  let anyMatch = false;
+  rows.forEach(row => {
+    const match = !q || row.dataset.name.includes(q);
+    row.style.display = match ? "" : "none";
+    if (match) anyMatch = true;
+  });
+  // Show freetext option if query doesn't exactly match anything
+  const freetextEl = document.getElementById("picker-freetext");
+  const nameEl = document.getElementById("picker-freetext-name");
+  if (q && !anyMatch) {
+    freetextEl.style.display = "";
+    nameEl.textContent = q.charAt(0).toUpperCase() + q.slice(1);
+  } else {
+    freetextEl.style.display = "none";
+  }
+}
+
+function pickExercise(name) {
+  const all = getAllKnownExercises();
+  const ex = all.find(e => e.name === name) || { name, zone: "Freihantel", sets: "3×10", muscle: "misc" };
+  if (_pickerCallback) _pickerCallback(ex);
+}
+
+function pickFreetext() {
+  const name = document.getElementById("picker-search")?.value?.trim();
+  if (!name) return;
+  const formatted = name.charAt(0).toUpperCase() + name.slice(1);
+  if (_pickerCallback) _pickerCallback({ name: formatted, zone: "Freihantel", sets: "3×10", muscle: "misc" });
+}
+
+function closeExercisePicker() {
+  _pickerCallback = null;
+  document.getElementById("exercise-picker-overlay")?.remove();
+}
+
+let _demoInterval = null;
+function showDemo(name) {
+  const urls = EXERCISE_DEMOS[name];
+  if (!urls) return;
+  const frames = Array.isArray(urls) ? urls : [urls];
+  if (_demoInterval) { clearInterval(_demoInterval); _demoInterval = null; }
+
+  const overlay = document.createElement("div");
+  overlay.className = "demo-overlay";
+  overlay.onclick = () => { if (_demoInterval) { clearInterval(_demoInterval); _demoInterval = null; } overlay.remove(); };
+
+  overlay.innerHTML = `<div class="demo-content" onclick="event.stopPropagation()">
+    <div class="demo-title">${name}</div>
+    <div class="demo-frame" style="position:relative;min-height:200px;border-radius:8px;overflow:hidden">
+      <img id="demo-img-a" src="${frames[0]}" style="max-width:100%;border-radius:8px;opacity:1"
+        onerror="this.style.display='none'">
+      ${frames.length > 1 ? `<img id="demo-img-b" src="${frames[1]}" style="max-width:100%;border-radius:8px;position:absolute;top:0;left:0;opacity:0"
+        onerror="this.style.display='none'">` : ""}
+    </div>
+    <button class="btn sm" onclick="if(window._demoInterval){clearInterval(window._demoInterval);window._demoInterval=null;}this.closest('.demo-overlay').remove()" style="margin-top:12px">Schließen</button>
+  </div>`;
+  document.body.appendChild(overlay);
+
+  // Animate between start/end positions
+  if (frames.length > 1) {
+    let showA = true;
+    _demoInterval = setInterval(() => {
+      const imgA = document.getElementById("demo-img-a");
+      const imgB = document.getElementById("demo-img-b");
+      if (!imgA || !imgB) { clearInterval(_demoInterval); _demoInterval = null; return; }
+      showA = !showA;
+      imgA.style.opacity = showA ? "1" : "0";
+      imgB.style.opacity = showA ? "0" : "1";
+    }, 1200);
+    window._demoInterval = _demoInterval;
+  }
 }
 
 // ── NAVIGATION ───────────────────────────────────────────
@@ -432,7 +699,7 @@ function renderSession() {
         <div class="done-sub">${exercises.length} Übungen · ${sessionType}</div>
         <div class="done-stats">
           <span>${mins} min</span>
-          <span>${sessionLog.exercises.filter(e => e.actualWeight != null).length} Gewichte geloggt</span>
+          <span>${sessionLog.exercises.filter(e => e.actualWeights?.some(w => w != null)).length} Gewichte geloggt</span>
         </div>
         <textarea class="done-comment" id="session-comment" placeholder="Wie war's? (optional)"></textarea>
         <button class="btn primary block" onclick="finishSession()" id="finish-btn">Session speichern</button>
@@ -463,7 +730,7 @@ function renderSession() {
           <div class="ex-row">
             <div class="ex-num${isSkipped?" skip":""}">${isDone?"✓":isSkipped?"⏭":i+1}</div>
             <div style="flex:1">
-              <div class="ex-name">${ex.name}</div>
+              <div class="ex-name">${ex.name}${EXERCISE_DEMOS[ex.name] ? ` <span class="demo-icon" onclick="event.stopPropagation();showDemo('${ex.name.replace(/'/g,"\\'")}')">ℹ</span>` : ""}</div>
               <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}</div>
               <div class="ex-zone">${ex.zone}</div>
             </div>
@@ -479,37 +746,79 @@ function renderSession() {
           <div class="ex-row">
             <div class="ex-num${isCur?" cur":""}${isSkipped && !isCur?" skip":""}">${isDone?"✓":isSkipped && !isCur?"⏭":i+1}</div>
             <div style="flex:1">
-              <div class="ex-name">${ex.name}</div>
-              <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}${isDone && loggedWeight != null ? " → " + loggedWeight + " " + getWeightUnit(ex.name) : ""}</div>
+              <div class="ex-name">${ex.name}${EXERCISE_DEMOS[ex.name] ? ` <span class="demo-icon" onclick="event.stopPropagation();showDemo('${ex.name.replace(/'/g,"\\'")}')">ℹ</span>` : ""}</div>
+              <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}${isDone && sessionLog.exercises[i]?.actualWeights?.some(w => w != null) ? " → " + formatLoggedWeights(sessionLog.exercises[i]) : ""}</div>
               <div class="ex-zone">${ex.zone}</div>
             </div>
             ${canJump ? `<button class="btn-jump ${sameMuscle?"same":""}" onclick="jumpToEx(${i})" title="${sameMuscle?"Gleiche Muskelgruppe":"Andere Muskelgruppe — safe"}">▶</button>` : ""}
           </div>`;
 
         if (isCur) {
-          const wNum = getWeightNum(ex.name);
-          const wUnit = getWeightUnit(ex.name);
-          if (wNum != null) {
-            html += `<div class="weight-input-group">
-                <button class="cnt-btn" onclick="adjustWeight(-2.5)">−</button>
-                <input type="number" inputmode="decimal" step="0.5" class="weight-input" id="weight-val" value="${wNum}" onfocus="this.select()">
-                <span class="weight-unit">${wUnit}</span>
-                <button class="cnt-btn" onclick="adjustWeight(2.5)">+</button>
-              </div>`;
+          const logEntry = sessionLog.exercises[i];
+          const wUnit = logEntry?.actualUnit || getWeightUnit(ex.name);
+          const parsed = parseSets(ex.sets);
+
+          if (logEntry && logEntry.setCount > 1 && !parsed.isCardio) {
+            // Per-set weight UI
+            html += `<div class="sets-grid">`;
+            for (let s = 0; s < logEntry.setCount; s++) {
+              const isDoneSet = logEntry.setsCompleted[s];
+              const isCurSet = s === curSet && !isDoneSet;
+              const wVal = logEntry.actualWeights[s] ?? getWeightNum(ex.name) ?? 0;
+              html += `<div class="set-row ${isDoneSet ? 'set-done' : ''} ${isCurSet ? 'set-current' : ''}">
+                <span class="set-label">Satz ${s + 1}</span>`;
+              if (isCurSet) {
+                html += `<div class="weight-input-group" style="margin:0;padding:0;flex:1">
+                  <button class="cnt-btn" onclick="adjustSetWeight(${s},-2.5)">−</button>
+                  <input type="number" inputmode="decimal" step="0.5" class="weight-input" id="set-weight-${s}" value="${wVal}" onfocus="this.select()">
+                  <span class="weight-unit">${wUnit}</span>
+                  <button class="cnt-btn" onclick="adjustSetWeight(${s},2.5)">+</button>
+                </div>
+                <button class="btn primary sm" onclick="doneSet(${s})" style="padding:6px 12px;min-height:36px">✓</button>`;
+              } else {
+                html += `<span class="set-weight" style="flex:1">${isDoneSet ? logEntry.actualWeights[s] : wVal} ${wUnit}</span>
+                  ${isDoneSet ? '<span class="set-check">✓</span>' : ''}`;
+              }
+              html += `</div>`;
+            }
+            html += `</div>`;
+            const allSetsDone = logEntry.setsCompleted.every(Boolean);
+            const doneCount = logEntry.setsCompleted.filter(Boolean).length;
+            html += `<div class="ex-btns">
+              <button class="btn primary sm" onclick="doneEx()" ${allSetsDone ? '' : 'disabled style="opacity:0.4"'}>
+                ${allSetsDone ? 'Erledigt →' : doneCount + '/' + logEntry.setCount + ' Sätze'}
+              </button>
+              ${ex.muscle !== "cardio" ? `<button class="btn sm" onclick="toggleAlts(${i})">${altOpen===i?"✕ Schließen":"Besetzt?"}</button>` : ""}
+            </div>`;
+          } else {
+            // Single weight input (cardio, single-set, or no weight)
+            const wNum = logEntry ? (logEntry.actualWeights[0] ?? getWeightNum(ex.name)) : getWeightNum(ex.name);
+            if (wNum != null) {
+              html += `<div class="weight-input-group">
+                  <button class="cnt-btn" onclick="adjustWeight(-2.5)">−</button>
+                  <input type="number" inputmode="decimal" step="0.5" class="weight-input" id="weight-val" value="${wNum}" onfocus="this.select()">
+                  <span class="weight-unit">${wUnit}</span>
+                  <button class="cnt-btn" onclick="adjustWeight(2.5)">+</button>
+                </div>`;
+            }
+            html += `<div class="ex-btns">
+              <button class="btn primary sm" onclick="doneEx()">Erledigt →</button>
+              ${ex.muscle !== "cardio" ? `<button class="btn sm" onclick="toggleAlts(${i})">${altOpen===i?"✕ Schließen":"Besetzt?"}</button>` : ""}
+            </div>`;
           }
-          html += `<div class="ex-btns">
-            <button class="btn primary sm" onclick="doneEx()">Erledigt →</button>
-            ${ex.muscle !== "cardio" ? `<button class="btn sm" onclick="toggleAlts(${i})">${altOpen===i?"✕ Schließen":"Besetzt?"}</button>` : ""}
-          </div>`;
           if (altOpen === i) {
             html += `<div class="alt-panel">`;
             if (ex.alts?.length) {
               html += `<div class="alt-header">Alternative wählen</div>
                 ${ex.alts.map((alt, ai) => `<div class="alt-row">
-                    <div><div class="alt-name">${alt.name}</div><div class="alt-zone">📍 ${alt.zone}</div></div>
+                    <div><div class="alt-name">${alt.name}${EXERCISE_DEMOS[alt.name] ? ` <span class="demo-icon" onclick="event.stopPropagation();showDemo('${alt.name.replace(/'/g,"\\'")}')">ℹ</span>` : ""}</div><div class="alt-zone">📍 ${alt.zone}</div></div>
                     <button class="btn primary sm" onclick="swapEx(${i},${ai})">Wählen</button>
                   </div>`).join("")}`;
             }
+            html += `<div class="alt-row" onclick="addCustomAlt(${i})" style="cursor:pointer;border-top:1px solid #e0e0e0">
+                <div><div class="alt-name">+ Neue Alternative</div><div class="alt-zone">Eigene Alternative hinzufügen</div></div>
+                <span style="font-size:18px;color:#999">+</span>
+              </div>`;
             html += `<div class="alt-row alt-skip" onclick="skipEx()">
                 <div><div class="alt-name">Überspringen</div><div class="alt-zone">Mach ich später — kommt am Ende wieder</div></div>
                 <span style="font-size:18px">⏭</span>
@@ -520,6 +829,13 @@ function renderSession() {
         html += `</div>`;
       }
     });
+    // Add exercise button (only during active session, not in picking mode)
+    if (!picking) {
+      html += `<div style="text-align:center;margin-top:4px;margin-bottom:8px">
+        <button class="btn sm add-ex-btn" onclick="addExToSession()">+ Übung hinzufügen</button>
+      </div>`;
+    }
+
     el.innerHTML = html;
     if (!picking) document.querySelectorAll(".ex-card")[curIdx]?.scrollIntoView({behavior:"smooth",block:"nearest"});
   }
@@ -540,18 +856,40 @@ function startSession() {
     return;
   }
   exercises = JSON.parse(JSON.stringify(SESSIONS[sessionType] || SESSIONS["Oberkörper"]));
-  exercises.forEach(ex => { const w = getWeightDisplay(ex.name); if (w) ex.fallbackWeight = w; });
-  curIdx = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false; sessionActive = true;
+  exercises.forEach(ex => {
+    const w = getWeightDisplay(ex.name); if (w) ex.fallbackWeight = w;
+    // Merge custom alternatives
+    const custom = customAlts[ex.name] || [];
+    if (custom.length) ex.alts = [...(ex.alts || []), ...custom];
+  });
+  curIdx = 0; curSet = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false; sessionActive = true;
   sessionLog = {
     type: sessionType, startedAt: new Date(),
-    exercises: exercises.map(ex => ({
-      name: ex.name, sets: ex.sets, plannedWeight: getWeightDisplay(ex.name),
-      actualWeight: null, actualUnit: getWeightUnit(ex.name),
-      zone: ex.zone, wasAlt: false, originalName: null
-    }))
+    exercises: exercises.map(ex => {
+      const parsed = parseSets(ex.sets);
+      const wNum = getWeightNum(ex.name);
+      return {
+        name: ex.name, sets: ex.sets, plannedWeight: getWeightDisplay(ex.name),
+        setCount: parsed.count,
+        actualWeights: Array(parsed.count).fill(wNum),
+        setsCompleted: Array(parsed.count).fill(false),
+        actualUnit: getWeightUnit(ex.name),
+        zone: ex.zone, wasAlt: false, originalName: null
+      };
+    })
   };
   persistActiveSession();
   renderSession();
+}
+
+function formatLoggedWeights(logEntry) {
+  if (!logEntry?.actualWeights) return "";
+  const weights = logEntry.actualWeights.filter(w => w != null);
+  if (!weights.length) return "";
+  const unit = logEntry.actualUnit || "kg";
+  // If all weights are the same, show just one value
+  if (weights.every(w => w === weights[0])) return weights[0] + " " + unit;
+  return weights.join(" → ") + " " + unit;
 }
 
 function adjustWeight(delta) {
@@ -561,12 +899,53 @@ function adjustWeight(delta) {
   input.value = Math.round(val * 2) / 2;
 }
 
+function adjustSetWeight(setIdx, delta) {
+  const input = document.getElementById(`set-weight-${setIdx}`);
+  if (!input) return;
+  input.value = Math.max(0, Math.round(((parseFloat(input.value) || 0) + delta) * 2) / 2);
+}
+
+function doneSet(setIdx) {
+  const input = document.getElementById(`set-weight-${setIdx}`);
+  const logEntry = sessionLog.exercises[curIdx];
+  if (!logEntry) return;
+  if (input) logEntry.actualWeights[setIdx] = parseFloat(input.value) || 0;
+  logEntry.setsCompleted[setIdx] = true;
+
+  // Auto-advance to next incomplete set
+  const nextOpen = logEntry.setsCompleted.findIndex((done, i) => !done && i > setIdx);
+  if (nextOpen !== -1) {
+    curSet = nextOpen;
+  } else {
+    const firstOpen = logEntry.setsCompleted.findIndex(done => !done);
+    curSet = firstOpen !== -1 ? firstOpen : logEntry.setCount;
+  }
+
+  // Pre-fill next set with this set's weight
+  if (curSet < logEntry.setCount && logEntry.actualWeights[curSet] == null) {
+    logEntry.actualWeights[curSet] = logEntry.actualWeights[setIdx];
+  }
+
+  persistActiveSession();
+  renderSession();
+}
+
 function doneEx() {
-  const input = document.getElementById("weight-val");
-  if (input && sessionLog.exercises[curIdx]) {
-    sessionLog.exercises[curIdx].actualWeight = parseFloat(input.value) || null;
+  const logEntry = sessionLog.exercises[curIdx];
+  if (logEntry) {
+    // For single-set / cardio exercises, read the single weight input
+    if (logEntry.setCount <= 1 || parseSets(exercises[curIdx]?.sets || "").isCardio) {
+      const input = document.getElementById("weight-val");
+      if (input) {
+        logEntry.actualWeights[0] = parseFloat(input.value) || null;
+        logEntry.setsCompleted[0] = true;
+      }
+    }
+    // Mark all sets as done (in case user clicks "Erledigt" when all sets are individually done)
+    logEntry.setsCompleted = logEntry.setsCompleted.map(() => true);
   }
   completed.add(curIdx);
+  curSet = 0;
   skipped = [];  // Alle geskippten Übungen werden freigeschaltet
   altOpen = -1;
 
@@ -619,12 +998,22 @@ function pickEx(i) {
 }
 
 function jumpToEx(i) {
-  // Save current weight if entered
-  const input = document.getElementById("weight-val");
-  if (input && sessionLog.exercises[curIdx]) {
-    const val = parseFloat(input.value);
-    if (val) sessionLog.exercises[curIdx].actualWeight = val;
+  // Save any entered weights for current exercise
+  const logEntry = sessionLog.exercises[curIdx];
+  if (logEntry) {
+    // Save per-set weights
+    for (let s = 0; s < (logEntry.setCount || 1); s++) {
+      const setInput = document.getElementById(`set-weight-${s}`);
+      if (setInput) logEntry.actualWeights[s] = parseFloat(setInput.value) || logEntry.actualWeights[s];
+    }
+    // Also check single weight input
+    const input = document.getElementById("weight-val");
+    if (input) {
+      const val = parseFloat(input.value);
+      if (val) logEntry.actualWeights[0] = val;
+    }
   }
+  curSet = 0;
   // Skip current, jump to target
   if (!skipped.includes(curIdx)) skipped.push(curIdx);
   skipped = skipped.filter(s => s !== i); // un-skip target if it was skipped
@@ -638,17 +1027,76 @@ function toggleAlts(i) { altOpen = altOpen === i ? -1 : i; renderSession(); }
 
 function swapEx(i, ai) {
   const o = exercises[i], alt = o.alts[ai], originalName = o.name;
-  exercises[i] = { name: alt.name, sets: o.sets, zone: alt.zone,
+  exercises[i] = { name: alt.name, sets: o.sets, zone: alt.zone, muscle: o.muscle,
     alts: [{name:o.name,zone:o.zone}, ...o.alts.filter((_,x)=>x!==ai)] };
+  // Merge custom alts for the new exercise
+  const custom = customAlts[alt.name] || [];
+  if (custom.length) exercises[i].alts = [...exercises[i].alts, ...custom];
   if (sessionLog.exercises[i]) {
-    Object.assign(sessionLog.exercises[i], {
+    const wNum = getWeightNum(alt.name);
+    const logEntry = sessionLog.exercises[i];
+    Object.assign(logEntry, {
       name: alt.name, zone: alt.zone, plannedWeight: getWeightDisplay(alt.name),
-      actualUnit: getWeightUnit(alt.name), wasAlt: true, originalName
+      actualUnit: getWeightUnit(alt.name), wasAlt: true, originalName,
+      actualWeights: Array(logEntry.setCount).fill(wNum),
+      setsCompleted: Array(logEntry.setCount).fill(false)
     });
   }
+  curSet = 0;
   altOpen = -1;
   persistActiveSession();
   renderSession();
+}
+
+function addExToSession() {
+  const existing = exercises.map(e => e.name);
+  renderExercisePicker({ exclude: existing }, (selected) => {
+    const sets = selected.sets || "3×10";
+    const newEx = {
+      name: selected.name, sets, zone: selected.zone || "Freihantel",
+      muscle: selected.muscle || "misc", alts: [], fallbackWeight: getWeightDisplay(selected.name) || ""
+    };
+    // Merge any custom alts for this exercise
+    const custom = customAlts[selected.name] || [];
+    if (custom.length) newEx.alts = [...custom];
+
+    exercises.push(newEx);
+    const parsed = parseSets(sets);
+    const wNum = getWeightNum(selected.name);
+    sessionLog.exercises.push({
+      name: selected.name, sets,
+      plannedWeight: getWeightDisplay(selected.name),
+      setCount: parsed.count,
+      actualWeights: Array(parsed.count).fill(wNum),
+      setsCompleted: Array(parsed.count).fill(false),
+      actualUnit: getWeightUnit(selected.name),
+      zone: newEx.zone, wasAlt: false, originalName: null, addedMidSession: true
+    });
+    closeExercisePicker();
+    persistActiveSession();
+    renderSession();
+  });
+}
+
+function addCustomAlt(exIdx) {
+  const exName = exercises[exIdx].name;
+  const existing = (exercises[exIdx].alts || []).map(a => a.name);
+  renderExercisePicker({ exclude: [exName, ...existing] }, (selected) => {
+    const newAlt = { name: selected.name, zone: selected.zone };
+    // Save to customAlts
+    if (!customAlts[exName]) customAlts[exName] = [];
+    if (!customAlts[exName].some(a => a.name === newAlt.name)) {
+      customAlts[exName].push(newAlt);
+    }
+    // Add to current session's exercise
+    if (!exercises[exIdx].alts) exercises[exIdx].alts = [];
+    exercises[exIdx].alts.push(newAlt);
+    localStorage.setItem("gymapp_custom_alts", JSON.stringify(customAlts));
+    saveCustomAltsToSupabase();
+    closeExercisePicker();
+    persistActiveSession();
+    renderSession();
+  });
 }
 
 function backFromSession() {
@@ -657,7 +1105,7 @@ function backFromSession() {
 }
 
 function resetSession() {
-  sessionActive = false; curIdx = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false;
+  sessionActive = false; curIdx = 0; curSet = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false;
   localStorage.removeItem("gymapp_active_session");
   renderSession();
 }
@@ -665,7 +1113,7 @@ function resetSession() {
 function persistActiveSession() {
   if (!sessionActive) return;
   localStorage.setItem("gymapp_active_session", JSON.stringify({
-    sessionType, exercises, curIdx, altOpen, skipped, picking, outOfOrder,
+    sessionType, exercises, curIdx, curSet, altOpen, skipped, picking, outOfOrder,
     completed: [...completed],
     sessionLog: { ...sessionLog, startedAt: sessionLog.startedAt?.toISOString() }
   }));
@@ -677,12 +1125,22 @@ function restoreActiveSession() {
   sessionType = saved.sessionType;
   exercises = saved.exercises;
   curIdx = saved.curIdx;
+  curSet = saved.curSet || 0;
   altOpen = saved.altOpen;
   skipped = saved.skipped || [];
   completed = new Set(saved.completed || []);
   picking = saved.picking || false;
   outOfOrder = saved.outOfOrder || false;
   sessionLog = { ...saved.sessionLog, startedAt: new Date(saved.sessionLog.startedAt) };
+  // Migrate old format: single actualWeight → actualWeights array
+  sessionLog.exercises.forEach((ex, i) => {
+    if (!ex.actualWeights) {
+      const parsed = parseSets(ex.sets || exercises[i]?.sets || "1×1");
+      ex.setCount = parsed.count;
+      ex.actualWeights = Array(parsed.count).fill(ex.actualWeight ?? getWeightNum(ex.name));
+      ex.setsCompleted = Array(parsed.count).fill(ex.actualWeight != null);
+    }
+  });
   sessionActive = true;
   return true;
 }
@@ -721,11 +1179,20 @@ function renderHistory() {
       html += `<div class="history-detail">`;
       exList.forEach(ex => {
         const name = ex.exercise_name || ex.name;
-        const actual = ex.actual_weight ?? ex.actualWeight;
         const unit = ex.actual_weight_unit || ex.actualUnit || "";
         const planned = ex.planned_weight || ex.plannedWeight || ex.planned_sets || ex.sets || "";
-        html += `<div class="history-ex-row"><span>${name}</span>
-          <span>${actual != null ? actual + " " + unit : planned}</span></div>`;
+        // Try per-set weights first
+        let weightsJson = ex.actual_weights_json;
+        if (typeof weightsJson === "string") try { weightsJson = JSON.parse(weightsJson); } catch(e) { weightsJson = null; }
+        let display;
+        if (weightsJson && Array.isArray(weightsJson) && weightsJson.length > 1) {
+          const ws = weightsJson.filter(w => w != null);
+          display = ws.every(w => w === ws[0]) ? ws[0] + " " + unit : ws.join(" → ") + " " + unit;
+        } else {
+          const actual = ex.actual_weight ?? ex.actualWeight;
+          display = actual != null ? actual + " " + unit : planned;
+        }
+        html += `<div class="history-ex-row"><span>${name}</span><span>${display}</span></div>`;
       });
       if (session.comment) html += `<div class="history-comment">${session.comment}</div>`;
       html += `</div>`;
@@ -802,7 +1269,7 @@ function renderGym() {
     <div class="section-label">Gerät hinzufügen</div>
     <div class="add-form">
       <div class="input-row">
-        <input class="input" id="new-name" placeholder="Gerätename" style="flex:1">
+        <input class="input" id="new-name" placeholder="Gerätename" style="flex:1" oninput="autoSuggestZone()">
         <input class="input" id="new-sub" placeholder="Typ / Marke" style="width:120px">
       </div>
       <div class="input-row">
@@ -841,6 +1308,15 @@ function delZone(zone) {
   if (!confirm(`Zone "${zone}" und alle Geräte darin löschen?`)) return;
   delete gym[zone];
   renderGym();
+}
+
+function autoSuggestZone() {
+  const name = (document.getElementById("new-name")?.value || "").trim();
+  const zone = guessZone(name);
+  if (zone) {
+    const sel = document.getElementById("new-zone");
+    if (sel && [...sel.options].some(o => o.value === zone)) sel.value = zone;
+  }
 }
 
 function addDevice() {
@@ -1169,7 +1645,7 @@ let appLoaded = false;
 async function loadAllData() {
   if (appLoaded) return;
   appLoaded = true;
-  await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), loadHistory(), syncPending()]);
+  await Promise.all([loadWeights(), loadProfile(), loadGymEquipment(), loadHistory(), loadCustomAlts(), syncPending()]);
   restoreActiveSession();
   // Restore the tab the user was on
   showTab(currentTab);
