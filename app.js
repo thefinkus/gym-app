@@ -15,7 +15,14 @@ const WEIGHTS_DEFAULT = {
   "Beinbeuger":{w:40,unit:"kg",zone:"Kraftbereich EG"},
   "Wadenheben exz.":{w:50,unit:"kg",zone:"Kraftbereich EG"},
   "Bulgarian Split Squat":{w:12,unit:"kg KH",zone:"Freihantel"},
-  "Plank":{w:120,unit:"sek",zone:"Matten"}
+  "Plank":{w:120,unit:"sek",zone:"Matten"},
+  // Cardio — Default: Minuten
+  "Rudergerät Warm-up":{w:5,unit:"min",zone:"Cardio EG"},
+  "Rudergerät Cool-down":{w:5,unit:"min",zone:"Cardio EG"},
+  "Crosstrainer Warm-up":{w:5,unit:"min",zone:"Cardio EG"},
+  "Crosstrainer":{w:10,unit:"min",zone:"Cardio EG"},
+  "Crosstrainer Cool-down":{w:5,unit:"min",zone:"Cardio EG"},
+  "Fahrrad Warm-up":{w:5,unit:"min",zone:"Cardio EG"}
 };
 
 const SESSIONS = {
@@ -723,8 +730,10 @@ function renderSession() {
       const isDone = completed.has(i);
       const isSkipped = skipped.includes(i);
       const isCur = !picking && i === curIdx;
-      const weightDisplay = getWeightDisplay(ex.name) || ex.fallbackWeight || "";
-      const loggedWeight = sessionLog.exercises[i]?.actualWeight;
+      const logEntry_i = sessionLog.exercises[i];
+      // Only show planned weight for future exercises (not current/done) or if no log entry
+      const showPlanned = !isCur && !isDone && !logEntry_i?.actualWeights?.some(w => w != null);
+      const weightDisplay = showPlanned ? (getWeightDisplay(ex.name) || ex.fallbackWeight || "") : "";
 
       if (picking) {
         // Picking mode: show selectable exercises with muscle-group color coding
@@ -752,7 +761,7 @@ function renderSession() {
             <div class="ex-num${isCur?" cur":""}${isSkipped && !isCur?" skip":""}">${isDone?"✓":isSkipped && !isCur?"⏭":i+1}</div>
             <div style="flex:1">
               <div class="ex-name">${ex.name}${EXERCISE_DEMOS[ex.name] ? ` <button class="demo-btn" onclick="event.stopPropagation();showDemo('${ex.name.replace(/'/g,"\\'")}')">i</button>` : ""}</div>
-              <div class="ex-detail">${getActualSets(ex, sessionLog.exercises[i], isDone)}${weightDisplay ? " · " + weightDisplay : ""}${isDone && sessionLog.exercises[i]?.actualWeights?.some(w => w != null) ? " → " + formatLoggedWeights(sessionLog.exercises[i]) : ""}</div>
+              <div class="ex-detail">${getActualSets(ex, sessionLog.exercises[i], isDone)}${weightDisplay ? " · " + weightDisplay : ""}${isDone && logEntry_i?.actualWeights?.some(w => w != null) ? " · " + formatLoggedWeights(logEntry_i) : ""}</div>
               <div class="ex-zone">${ex.zone}${isDone && !isEditing ? ' · <span style="color:#bbb;font-size:11px">Tap zum Bearbeiten</span>' : ""}</div>
             </div>
             ${canJump ? `<button class="btn-jump ${sameMuscle?"same":""}" onclick="jumpToEx(${i})" title="${sameMuscle?"Gleiche Muskelgruppe":"Andere Muskelgruppe — safe"}">▶</button>` : ""}
@@ -762,7 +771,7 @@ function renderSession() {
         if (isEditing) {
           const logEntry = sessionLog.exercises[i];
           const wUnit = logEntry?.actualUnit || getWeightUnit(ex.name);
-          const isWholeNum = wUnit === "reps" || wUnit === "sek";
+          const isWholeNum = wUnit !== "kg" && wUnit !== "kg KH";
           const inputStep = isWholeNum ? "1" : "0.5";
           const inputMode = isWholeNum ? "numeric" : "decimal";
           if (logEntry && logEntry.setCount > 1) {
@@ -796,7 +805,7 @@ function renderSession() {
           const wUnit = logEntry?.actualUnit || getWeightUnit(ex.name);
           const parsed = parseSets(ex.sets);
 
-          const isWholeNum = wUnit === "reps" || wUnit === "sek";
+          const isWholeNum = wUnit !== "kg" && wUnit !== "kg KH";
           const inputStep = isWholeNum ? "1" : "0.5";
           const inputMode = isWholeNum ? "numeric" : "decimal";
 
@@ -950,7 +959,7 @@ function formatLoggedWeights(logEntry) {
   return weights.join(" → ") + " " + unit;
 }
 
-function getUnitStep(unit) { return (unit === "reps" || unit === "sek") ? 1 : 2.5; }
+function getUnitStep(unit) { return (unit === "kg" || unit === "kg KH") ? 2.5 : 1; }
 
 function adjustWeight(delta) {
   const input = document.getElementById("weight-val");
@@ -991,12 +1000,10 @@ function saveDoneEdit(idx) {
 function toggleUnit(exIdx) {
   const logEntry = sessionLog.exercises[exIdx];
   if (!logEntry) return;
-  const units = ["kg", "reps", "sek"];
+  const units = ["kg", "reps", "min", "sek"];
   const cur = units.indexOf(logEntry.actualUnit || "kg");
   logEntry.actualUnit = units[(cur + 1) % units.length];
-  // Also update WEIGHTS cache so carry-forward remembers
-  const exName = exercises[exIdx]?.name;
-  if (exName && WEIGHTS[exName]) WEIGHTS[exName].unit = logEntry.actualUnit;
+  // Don't update WEIGHTS cache — keep original unit for carry-forward
   persistActiveSession();
   renderSession();
 }
