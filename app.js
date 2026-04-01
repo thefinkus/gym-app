@@ -181,6 +181,7 @@ let profileEditing = false;
 let editingDevice = -1; // index of device being edited: "zone:idx"
 let sessionLog = { type: null, startedAt: null, exercises: [] };
 let curSet = 0; // current set index within current exercise (for per-set weight)
+let editingDoneIdx = -1; // index of done exercise being edited (-1 = none)
 let sessionEnding = false; // true = user wants to finish early
 let customAlts = {}; // { "exerciseName": [{name, zone}, ...] }
 let historyData = [];
@@ -733,7 +734,7 @@ function renderSession() {
           <div class="ex-row">
             <div class="ex-num${isSkipped?" skip":""}">${isDone?"✓":isSkipped?"⏭":i+1}</div>
             <div style="flex:1">
-              <div class="ex-name">${ex.name}${EXERCISE_DEMOS[ex.name] ? ` <span class="demo-icon" onclick="event.stopPropagation();showDemo('${ex.name.replace(/'/g,"\\'")}')">ℹ</span>` : ""}</div>
+              <div class="ex-name">${ex.name}${EXERCISE_DEMOS[ex.name] ? ` <button class="demo-btn" onclick="event.stopPropagation();showDemo('${ex.name.replace(/'/g,"\\'")}')">i</button>` : ""}</div>
               <div class="ex-detail">${ex.sets}${weightDisplay ? " · " + weightDisplay : ""}</div>
               <div class="ex-zone">${ex.zone}</div>
             </div>
@@ -745,21 +746,59 @@ function renderSession() {
         const canJump = !isCur && !isDone && ex.muscle !== "cardio" && curMuscle !== "cardio";
         const sameMuscle = canJump && ex.muscle === curMuscle && ex.muscle !== "cardio";
 
-        html += `<div class="ex-card${isCur?" current":""}${isDone?" done":""}${isSkipped && !isCur?" skipped":""}">
+        const isEditing = isDone && editingDoneIdx === i;
+        html += `<div class="ex-card${isCur?" current":""}${isDone && !isEditing?" done":""}${isEditing?" editing":""}${isSkipped && !isCur?" skipped":""}"${isDone && !isCur ? ` onclick="editDoneEx(${i})" style="cursor:pointer"` : ""}>
           <div class="ex-row">
             <div class="ex-num${isCur?" cur":""}${isSkipped && !isCur?" skip":""}">${isDone?"✓":isSkipped && !isCur?"⏭":i+1}</div>
             <div style="flex:1">
-              <div class="ex-name">${ex.name}${EXERCISE_DEMOS[ex.name] ? ` <span class="demo-icon" onclick="event.stopPropagation();showDemo('${ex.name.replace(/'/g,"\\'")}')">ℹ</span>` : ""}</div>
+              <div class="ex-name">${ex.name}${EXERCISE_DEMOS[ex.name] ? ` <button class="demo-btn" onclick="event.stopPropagation();showDemo('${ex.name.replace(/'/g,"\\'")}')">i</button>` : ""}</div>
               <div class="ex-detail">${getActualSets(ex, sessionLog.exercises[i], isDone)}${weightDisplay ? " · " + weightDisplay : ""}${isDone && sessionLog.exercises[i]?.actualWeights?.some(w => w != null) ? " → " + formatLoggedWeights(sessionLog.exercises[i]) : ""}</div>
-              <div class="ex-zone">${ex.zone}</div>
+              <div class="ex-zone">${ex.zone}${isDone && !isEditing ? ' · <span style="color:#bbb;font-size:11px">Tap zum Bearbeiten</span>' : ""}</div>
             </div>
             ${canJump ? `<button class="btn-jump ${sameMuscle?"same":""}" onclick="jumpToEx(${i})" title="${sameMuscle?"Gleiche Muskelgruppe":"Andere Muskelgruppe — safe"}">▶</button>` : ""}
           </div>`;
+
+        // Editing a done exercise
+        if (isEditing) {
+          const logEntry = sessionLog.exercises[i];
+          const wUnit = logEntry?.actualUnit || getWeightUnit(ex.name);
+          const isWholeNum = wUnit === "reps" || wUnit === "sek";
+          const inputStep = isWholeNum ? "1" : "0.5";
+          const inputMode = isWholeNum ? "numeric" : "decimal";
+          if (logEntry && logEntry.setCount > 1) {
+            html += `<div class="sets-grid" onclick="event.stopPropagation()">`;
+            for (let s = 0; s < logEntry.setCount; s++) {
+              const wVal = logEntry.actualWeights[s] ?? 0;
+              html += `<div class="set-row">
+                <span class="set-label">Satz ${s + 1}</span>
+                <div class="weight-input-group" style="margin:0;padding:0;flex:1">
+                  <input type="number" inputmode="${inputMode}" step="${inputStep}" class="weight-input" id="edit-weight-${s}" value="${wVal}" onfocus="this.select()">
+                  <span class="weight-unit">${wUnit}</span>
+                </div>
+              </div>`;
+            }
+            html += `</div>`;
+          } else if (logEntry) {
+            const wVal = logEntry.actualWeights[0] ?? 0;
+            html += `<div class="weight-input-group" onclick="event.stopPropagation()">
+              <input type="number" inputmode="${inputMode}" step="${inputStep}" class="weight-input" id="edit-weight-single" value="${wVal}" onfocus="this.select()">
+              <span class="weight-unit">${wUnit}</span>
+            </div>`;
+          }
+          html += `<div class="ex-btns" onclick="event.stopPropagation()">
+            <button class="btn primary sm" onclick="saveDoneEdit(${i})">Speichern ✓</button>
+            <button class="btn sm" onclick="editingDoneIdx=-1;renderSession()">Abbrechen</button>
+          </div>`;
+        }
 
         if (isCur) {
           const logEntry = sessionLog.exercises[i];
           const wUnit = logEntry?.actualUnit || getWeightUnit(ex.name);
           const parsed = parseSets(ex.sets);
+
+          const isWholeNum = wUnit === "reps" || wUnit === "sek";
+          const inputStep = isWholeNum ? "1" : "0.5";
+          const inputMode = isWholeNum ? "numeric" : "decimal";
 
           if (logEntry && logEntry.setCount > 1 && !parsed.isCardio) {
             // Per-set weight UI
@@ -772,10 +811,10 @@ function renderSession() {
                 <span class="set-label">Satz ${s + 1}</span>`;
               if (isCurSet) {
                 html += `<div class="weight-input-group" style="margin:0;padding:0;flex:1">
-                  <button class="cnt-btn" onclick="adjustSetWeight(${s},-2.5)">−</button>
-                  <input type="number" inputmode="decimal" step="0.5" class="weight-input" id="set-weight-${s}" value="${wVal}" onfocus="this.select()">
-                  <span class="weight-unit">${wUnit}</span>
-                  <button class="cnt-btn" onclick="adjustSetWeight(${s},2.5)">+</button>
+                  <button class="cnt-btn" onclick="adjustSetWeight(${s},-1)">−</button>
+                  <input type="number" inputmode="${inputMode}" step="${inputStep}" class="weight-input" id="set-weight-${s}" value="${wVal}" onfocus="this.select()">
+                  <button class="unit-toggle" onclick="toggleUnit(${i})">${wUnit}</button>
+                  <button class="cnt-btn" onclick="adjustSetWeight(${s},1)">+</button>
                 </div>
                 <button class="btn primary sm" onclick="doneSet(${s})" style="padding:6px 12px;min-height:36px">✓</button>`;
               } else {
@@ -799,10 +838,10 @@ function renderSession() {
             const wNum = logEntry ? (logEntry.actualWeights[0] ?? getWeightNum(ex.name)) : getWeightNum(ex.name);
             if (wNum != null) {
               html += `<div class="weight-input-group">
-                  <button class="cnt-btn" onclick="adjustWeight(-2.5)">−</button>
-                  <input type="number" inputmode="decimal" step="0.5" class="weight-input" id="weight-val" value="${wNum}" onfocus="this.select()">
-                  <span class="weight-unit">${wUnit}</span>
-                  <button class="cnt-btn" onclick="adjustWeight(2.5)">+</button>
+                  <button class="cnt-btn" onclick="adjustWeight(-1)">−</button>
+                  <input type="number" inputmode="${inputMode}" step="${inputStep}" class="weight-input" id="weight-val" value="${wNum}" onfocus="this.select()">
+                  <button class="unit-toggle" onclick="toggleUnit(${i})">${wUnit}</button>
+                  <button class="cnt-btn" onclick="adjustWeight(1)">+</button>
                 </div>`;
             }
             html += `<div class="ex-btns">
@@ -815,7 +854,7 @@ function renderSession() {
             if (ex.alts?.length) {
               html += `<div class="alt-header">Alternative wählen</div>
                 ${ex.alts.map((alt, ai) => `<div class="alt-row">
-                    <div><div class="alt-name">${alt.name}${EXERCISE_DEMOS[alt.name] ? ` <span class="demo-icon" onclick="event.stopPropagation();showDemo('${alt.name.replace(/'/g,"\\'")}')">ℹ</span>` : ""}</div><div class="alt-zone">📍 ${alt.zone}</div></div>
+                    <div><div class="alt-name">${alt.name}${EXERCISE_DEMOS[alt.name] ? ` <button class="demo-btn" onclick="event.stopPropagation();showDemo('${alt.name.replace(/'/g,"\\'")}')">i</button>` : ""}</div><div class="alt-zone">📍 ${alt.zone}</div></div>
                     <button class="btn primary sm" onclick="swapEx(${i},${ai})">Wählen</button>
                   </div>`).join("")}`;
             }
@@ -890,7 +929,11 @@ function getActualSets(ex, logEntry, isDone) {
   if (!isDone || !logEntry?.setsCompleted) return ex.sets;
   const doneCount = logEntry.setsCompleted.filter(Boolean).length;
   const totalCount = logEntry.setCount || parseSets(ex.sets).count;
-  if (doneCount >= totalCount) return ex.sets; // all done — show original
+  if (doneCount === totalCount) return ex.sets; // all done exactly — show original
+  if (doneCount > totalCount) {
+    const parsed = parseSets(ex.sets);
+    return parsed.isCardio ? ex.sets : `${doneCount}×${parsed.reps}`;
+  }
   // Partial: show actual count with original reps
   const parsed = parseSets(ex.sets);
   if (parsed.isCardio) return ex.sets;
@@ -907,17 +950,55 @@ function formatLoggedWeights(logEntry) {
   return weights.join(" → ") + " " + unit;
 }
 
+function getUnitStep(unit) { return (unit === "reps" || unit === "sek") ? 1 : 2.5; }
+
 function adjustWeight(delta) {
   const input = document.getElementById("weight-val");
   if (!input) return;
-  let val = Math.max(0, (parseFloat(input.value) || 0) + delta);
-  input.value = Math.round(val * 2) / 2;
+  const step = getUnitStep(sessionLog.exercises[curIdx]?.actualUnit || "kg");
+  let val = Math.max(0, (parseFloat(input.value) || 0) + (delta > 0 ? step : -step));
+  input.value = step >= 1 ? Math.round(val) : Math.round(val * 2) / 2;
 }
 
 function adjustSetWeight(setIdx, delta) {
   const input = document.getElementById(`set-weight-${setIdx}`);
   if (!input) return;
-  input.value = Math.max(0, Math.round(((parseFloat(input.value) || 0) + delta) * 2) / 2);
+  const step = getUnitStep(sessionLog.exercises[curIdx]?.actualUnit || "kg");
+  let val = Math.max(0, (parseFloat(input.value) || 0) + (delta > 0 ? step : -step));
+  input.value = step >= 1 ? Math.round(val) : Math.round(val * 2) / 2;
+}
+
+function editDoneEx(idx) {
+  editingDoneIdx = (editingDoneIdx === idx) ? -1 : idx;
+  renderSession();
+}
+
+function saveDoneEdit(idx) {
+  const logEntry = sessionLog.exercises[idx];
+  if (!logEntry) return;
+  for (let s = 0; s < logEntry.setCount; s++) {
+    const input = document.getElementById(`edit-weight-${s}`);
+    if (input) logEntry.actualWeights[s] = parseFloat(input.value) || 0;
+  }
+  // Single-set fallback
+  const singleInput = document.getElementById("edit-weight-single");
+  if (singleInput) logEntry.actualWeights[0] = parseFloat(singleInput.value) || 0;
+  editingDoneIdx = -1;
+  persistActiveSession();
+  renderSession();
+}
+
+function toggleUnit(exIdx) {
+  const logEntry = sessionLog.exercises[exIdx];
+  if (!logEntry) return;
+  const units = ["kg", "reps", "sek"];
+  const cur = units.indexOf(logEntry.actualUnit || "kg");
+  logEntry.actualUnit = units[(cur + 1) % units.length];
+  // Also update WEIGHTS cache so carry-forward remembers
+  const exName = exercises[exIdx]?.name;
+  if (exName && WEIGHTS[exName]) WEIGHTS[exName].unit = logEntry.actualUnit;
+  persistActiveSession();
+  renderSession();
 }
 
 function addSet(exIdx) {
@@ -1140,7 +1221,7 @@ function backFromSession() {
 }
 
 function resetSession() {
-  sessionActive = false; curIdx = 0; curSet = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false; sessionEnding = false;
+  sessionActive = false; curIdx = 0; curSet = 0; altOpen = -1; skipped = []; completed = new Set(); picking = false; sessionEnding = false; editingDoneIdx = -1;
   localStorage.removeItem("gymapp_active_session");
   renderSession();
 }

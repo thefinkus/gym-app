@@ -43,7 +43,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;fo
 /* Exercise cards */
 .ex-card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:opacity .2s}
 .ex-card.current{border:1.5px solid #111}
-.ex-card.done{opacity:.35}
+.ex-card.done{opacity:.35;cursor:pointer}
+.ex-card.editing{opacity:1;border:1.5px solid #2e7d32}
 .ex-card.skipped{opacity:.5;border-style:dashed}
 .ex-num.skip{background:#f5a623;color:#fff}
 .btn-jump{border:none;background:#e8f5e9;color:#2e7d32;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -64,6 +65,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;fo
 .weight-input{width:72px;text-align:center;font-size:18px;font-weight:600;border:1px solid #ddd;border-radius:8px;padding:8px 4px;font-family:inherit;background:#fff;color:#111;-moz-appearance:textfield}
 .weight-input::-webkit-inner-spin-button,.weight-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .weight-unit{font-size:14px;color:#888;min-width:28px}
+.unit-toggle{font-size:13px;color:#555;min-width:36px;padding:4px 6px;border:1px dashed #ccc;border-radius:6px;background:#fafafa;cursor:pointer;font-family:inherit;text-align:center}
+.unit-toggle:active{background:#eee}
 
 /* Alternatives panel */
 .alt-panel{background:#f6f6f6;border-radius:8px;overflow:hidden;margin-top:10px}
@@ -162,8 +165,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;fo
 .set-check{color:#2e7d32;font-size:14px}
 
 /* Exercise demo overlay */
-.demo-icon{font-size:12px;color:#bbb;cursor:pointer;margin-left:4px;display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;background:#f0f0f0;vertical-align:middle}
-.demo-icon:active{background:#e0e0e0}
+.demo-btn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;border:1.5px solid #ccc;background:#fff;color:#999;font-size:11px;font-weight:600;font-style:italic;font-family:Georgia,serif;cursor:pointer;vertical-align:middle;margin-left:4px;padding:0;line-height:1}
+.demo-btn:active{background:#f0f0f0}
 .demo-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
 .demo-content{background:#fff;border-radius:16px;padding:20px;max-width:360px;width:100%;text-align:center}
 .demo-title{font-size:16px;font-weight:500;margin-bottom:12px}
